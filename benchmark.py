@@ -79,7 +79,7 @@ class TestManager(object):
     def __init__(self, options):
         self.options = copy.copy(options)
 
-    def createTest(self, values, benchmark="adpcm.c"):
+    def createTest(self, values, benchmark="dhrystone"):
         if len(values) != len(self.options):
             raise ValueError("Option values array incorrect size")
 
@@ -89,242 +89,30 @@ class TestManager(object):
 
         flags = map(Option.getOption, local_options)
 
-        t = Test("dhrystone", flags, 1)
+        t = Test(benchmark, flags, 1)
 
         return t
 
 
-options = [
-    Option(("-ftree-ch", "-fno-tree-ch"), Option.TrueFalse),
-    Option(("-ftree-copyrename", "-fno-tree-copyrename"), Option.TrueFalse),
-    Option(("-ftree-dce", "-fno-tree-dce"), Option.TrueFalse),
-    Option(("-ftree-dominator-opts", "-fno-tree-dominator-opts"), Option.TrueFalse),
-    Option(("-ftree-dse", "-fno-tree-dse"), Option.TrueFalse),
-    Option(("-ftree-fre", "-fno-tree-fre"), Option.TrueFalse),
-    Option(("-ftree-sra", "-fno-tree-sra"), Option.TrueFalse),
-    Option(("-ftree-ter", "-fno-tree-ter"), Option.TrueFalse)
-]
+# Testing purposes
 
+if __name__ == "__main__":
+    options = [
+        Option(("-ftree-ch", "-fno-tree-ch"), Option.TrueFalse),
+        Option(("-ftree-copyrename", "-fno-tree-copyrename"), Option.TrueFalse),
+        Option(("-ftree-dce", "-fno-tree-dce"), Option.TrueFalse),
+        Option(("-ftree-dominator-opts", "-fno-tree-dominator-opts"), Option.TrueFalse),
+        Option(("-ftree-dse", "-fno-tree-dse"), Option.TrueFalse),
+        Option(("-ftree-fre", "-fno-tree-fre"), Option.TrueFalse),
+        Option(("-ftree-sra", "-fno-tree-sra"), Option.TrueFalse),
+        Option(("-ftree-ter", "-fno-tree-ter"), Option.TrueFalse)
+    ]
 
-# options = [
-#     Option(("-fbranch-count-reg","-fno-branch-count-reg"), Option.TrueFalse),
-#     Option(("-fcombine-stack-adjustments","-fno-combine-stack-adjustments"), Option.TrueFalse),
-#     Option(("-fcommon","-fno-common"), Option.TrueFalse),
-#     Option(("-fcompare-elim","-fno-compare-elim"), Option.TrueFalse),
-#     Option(("-fcprop-registers","-fno-cprop-registers"), Option.TrueFalse),
-#     Option(("-fdefer-pop","-fno-defer-pop"), Option.TrueFalse),
-#     Option(("-fdelete-null-pointer-checks","-fno-delete-null-pointer-checks"), Option.TrueFalse),
-#     Option(("-fearly-inlining","-fno-early-inlining"), Option.TrueFalse),
-#     Option(("-feliminate-unused-debug-types","-fno-eliminate-unused-debug-types"), Option.TrueFalse),
-#     Option(("-fforward-propagate","-fno-forward-propagate"), Option.TrueFalse),
-#     Option(("-ffunction-cse","-fno-function-cse"), Option.TrueFalse),
-#     Option(("-fgcse-lm","-fno-gcse-lm"), Option.TrueFalse),
-#     Option(("-fguess-branch-probability","-fno-guess-branch-probability"), Option.TrueFalse),
-#     Option(("-fident","-fno-ident"), Option.TrueFalse),
-#     Option(("-fif-conversion","-fno-if-conversion"), Option.TrueFalse),
-#     Option(("-fif-conversion2","-fno-if-conversion2"), Option.TrueFalse),
-#     Option(("-finline","-fno-inline"), Option.TrueFalse),
-#     Option(("-finline-functions-called-once","-fno-inline-functions-called-once"), Option.TrueFalse),
-#     Option(("-fipa-profile","-fno-ipa-profile"), Option.TrueFalse),
-#     Option(("-fipa-pure-const","-fno-ipa-pure-const"), Option.TrueFalse),
-#     Option(("-fipa-reference","-fno-ipa-reference"), Option.TrueFalse),
-#     Option(("-fira-share-save-slots","-fno-ira-share-save-slots"), Option.TrueFalse),
-#     Option(("-fmath-errno","-fno-math-errno"), Option.TrueFalse),
-#     Option(("-fmerge-constants","-fno-merge-constants"), Option.TrueFalse),
-#     Option(("-fmerge-debug-strings","-fno-merge-debug-strings"), Option.TrueFalse),
-#     Option(("-fmove-loop-invariants","-fno-move-loop-invariants"), Option.TrueFalse),
-#     Option(("-fomit-frame-pointer","-fno-omit-frame-pointer"), Option.TrueFalse),
-#     Option(("-fpeephole","-fno-peephole"), Option.TrueFalse),
-#     Option(("-fprefetch-loop-arrays","-fno-prefetch-loop-arrays"), Option.TrueFalse),
-#     Option(("-freg-struct-return","-fno-reg-struct-return"), Option.TrueFalse),
-#     Option(("-fsched-critical-path-heuristic","-fno-sched-critical-path-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-dep-count-heuristic","-fno-sched-dep-count-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-group-heuristic","-fno-sched-group-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-interblock","-fno-sched-interblock"), Option.TrueFalse),
-#     Option(("-fsched-last-insn-heuristic","-fno-sched-last-insn-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-rank-heuristic","-fno-sched-rank-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-spec","-fno-sched-spec"), Option.TrueFalse),
-#     Option(("-fsched-spec-insn-heuristic","-fno-sched-spec-insn-heuristic"), Option.TrueFalse),
-#     Option(("-fsched-stalled-insns-dep","-fno-sched-stalled-insns-dep"), Option.TrueFalse),
-#     Option(("-fshow-column","-fno-show-column"), Option.TrueFalse),
-#     Option(("-fsigned-zeros","-fno-signed-zeros"), Option.TrueFalse),
-#     Option(("-fsplit-ivs-in-unroller","-fno-split-ivs-in-unroller"), Option.TrueFalse),
-#     Option(("-fsplit-wide-types","-fno-split-wide-types"), Option.TrueFalse),
-#     Option(("-fstack-protector","-fno-stack-protector"), Option.TrueFalse),
-#     Option(("-fstrict-volatile-bitfields","-fno-strict-volatile-bitfields"), Option.TrueFalse),
-#     Option(("-ftoplevel-reorder","-fno-toplevel-reorder"), Option.TrueFalse),
-#     Option(("-ftree-bit-ccp","-fno-tree-bit-ccp"), Option.TrueFalse),
-#     Option(("-ftree-ccp","-fno-tree-ccp"), Option.TrueFalse),
-#     Option(("-ftree-ch","-fno-tree-ch"), Option.TrueFalse),
-#     Option(("-ftree-copy-prop","-fno-tree-copy-prop"), Option.TrueFalse),
-#     Option(("-ftree-copyrename","-fno-tree-copyrename"), Option.TrueFalse),
-#     Option(("-ftree-cselim","-fno-tree-cselim"), Option.TrueFalse),
-#     Option(("-ftree-dce","-fno-tree-dce"), Option.TrueFalse),
-#     Option(("-ftree-dominator-opts","-fno-tree-dominator-opts"), Option.TrueFalse),
-#     Option(("-ftree-dse","-fno-tree-dse"), Option.TrueFalse),
-#     Option(("-ftree-forwprop","-fno-tree-forwprop"), Option.TrueFalse),
-#     Option(("-ftree-fre","-fno-tree-fre"), Option.TrueFalse),
-#     Option(("-ftree-loop-if-convert","-fno-tree-loop-if-convert"), Option.TrueFalse),
-#     Option(("-ftree-loop-im","-fno-tree-loop-im"), Option.TrueFalse),
-#     Option(("-ftree-loop-ivcanon","-fno-tree-loop-ivcanon"), Option.TrueFalse),
-#     Option(("-ftree-loop-optimize","-fno-tree-loop-optimize"), Option.TrueFalse),
-#     Option(("-ftree-phiprop","-fno-tree-phiprop"), Option.TrueFalse),
-#     Option(("-ftree-pta","-fno-tree-pta"), Option.TrueFalse),
-#     Option(("-ftree-reassoc","-fno-tree-reassoc"), Option.TrueFalse),
-#     Option(("-ftree-scev-cprop","-fno-tree-scev-cprop"), Option.TrueFalse),
-#     Option(("-ftree-sink","-fno-tree-sink"), Option.TrueFalse),
-#     Option(("-ftree-slp-vectorize","-fno-tree-slp-vectorize"), Option.TrueFalse),
-#     Option(("-ftree-sra","-fno-tree-sra"), Option.TrueFalse),
-#     Option(("-ftree-ter","-fno-tree-ter"), Option.TrueFalse),
-#     Option(("-funit-at-a-time","-fno-unit-at-a-time"), Option.TrueFalse)
+    print "Creating a benchmark and running it"
 
-# ]
+    t = TestManager(options)
+    test = t.createTest([True, False, True, False, True, False, True, False])
+    test.compile()
+    test.run()
 
-
-# mat =   [[False, False, False, False, False,  False,  False,   True],
-#     [True, False, False, False, False,  False,  True,   False],
-#     [False, True, False, False, False,  False,  True,   False],
-#     [True, True, False, False, False,  False,  False,   True],
-#     [False, False, True, False, False,  True,  False,   False],
-#     [True, False, True, False, False,  True,  True,   True],
-#     [False, True, True, False, False,  True,  True,   True],
-#     [True, True, True, False, False,  True,  False,   False],
-#     [False, False, False, True, False,  True,  False,   False],
-#     [True, False, False, True, False,  True,  True,   True],
-#     [False, True, False, True, False,  True,  True,   True],
-#     [True, True, False, True, False,  True,  False,   False],
-#     [False, False, True, True, False,  False,  False,   True],
-#     [True, False, True, True, False,  False,  True,   False],
-#     [False, True, True, True, False,  False,  True,   False],
-#     [True, True, True, True, False,  False,  False,   True],
-#     [False, False, False, False, True,  True,  True,   True],
-#     [True, False, False, False, True,  True,  False,   False],
-#     [False, True, False, False, True,  True,  False,   False],
-#     [True, True, False, False, True,  True,  True,   True],
-#     [False, False, True, False, True,  False,  True,   False],
-#     [True, False, True, False, True,  False,  False,   True],
-#     [False, True, True, False, True,  False,  False,   True],
-#     [True, True, True, False, True,  False,  True,   False],
-#     [False, False, False, True, True,  False,  True,   False],
-#     [True, False, False, True, True,  False,  False,   True],
-#     [False, True, False, True, True,  False,  False,   True],
-#     [True, True, False, True, True,  False,  True,   False],
-#     [False, False, True, True, True,  True,  True,   True],
-#     [True, False, True, True, True,  True,  False,   False],
-#     [False, True, True, True, True,  True,  False,   False],
-#     [True, True, True, True, True,  True,  True,   True]]
-
-mat = [[False, False, False, False, False, False,   True,   True],
-    [True, False, False, False, False, False,   True,   False],
-    [False, True, False, False, False, False,   True,   False],
-    [True, True, False, False, False, False,   True,   True],
-    [False, False, True, False, False, False,   False,   True],
-    [True, False, True, False, False, False,   False,   False],
-    [False, True, True, False, False, False,   False,   False],
-    [True, True, True, False, False, False,   False,   True],
-    [False, False, False, True, False, False,   False,   True],
-    [True, False, False, True, False, False,   False,   False],
-    [False, True, False, True, False, False,   False,   False],
-    [True, True, False, True, False, False,   False,   True],
-    [False, False, True, True, False, False,   True,   True],
-    [True, False, True, True, False, False,   True,   False],
-    [False, True, True, True, False, False,   True,   False],
-    [True, True, True, True, False, False,   True,   True],
-    [False, False, False, False, True, False,   False,   False],
-    [True, False, False, False, True, False,   False,   True],
-    [False, True, False, False, True, False,   False,   True],
-    [True, True, False, False, True, False,   False,   False],
-    [False, False, True, False, True, False,   True,   False],
-    [True, False, True, False, True, False,   True,   True],
-    [False, True, True, False, True, False,   True,   True],
-    [True, True, True, False, True, False,   True,   False],
-    [False, False, False, True, True, False,   True,   False],
-    [True, False, False, True, True, False,   True,   True],
-    [False, True, False, True, True, False,   True,   True],
-    [True, True, False, True, True, False,   True,   False],
-    [False, False, True, True, True, False,   False,   False],
-    [True, False, True, True, True, False,   False,   True],
-    [False, True, True, True, True, False,   False,   True],
-    [True, True, True, True, True, False,   False,   False],
-    [False, False, False, False, False, True,   False,   False],
-    [True, False, False, False, False, True,   False,   True],
-    [False, True, False, False, False, True,   False,   True],
-    [True, True, False, False, False, True,   False,   False],
-    [False, False, True, False, False, True,   True,   False],
-    [True, False, True, False, False, True,   True,   True],
-    [False, True, True, False, False, True,   True,   True],
-    [True, True, True, False, False, True,   True,   False],
-    [False, False, False, True, False, True,   True,   False],
-    [True, False, False, True, False, True,   True,   True],
-    [False, True, False, True, False, True,   True,   True],
-    [True, True, False, True, False, True,   True,   False],
-    [False, False, True, True, False, True,   False,   False],
-    [True, False, True, True, False, True,   False,   True],
-    [False, True, True, True, False, True,   False,   True],
-    [True, True, True, True, False, True,   False,   False],
-    [False, False, False, False, True, True,   True,   True],
-    [True, False, False, False, True, True,   True,   False],
-    [False, True, False, False, True, True,   True,   False],
-    [True, True, False, False, True, True,   True,   True],
-    [False, False, True, False, True, True,   False,   True],
-    [True, False, True, False, True, True,   False,   False],
-    [False, True, True, False, True, True,   False,   False],
-    [True, True, True, False, True, True,   False,   True],
-    [False, False, False, True, True, True,   False,   True],
-    [True, False, False, True, True, True,   False,   False],
-    [False, True, False, True, True, True,   False,   False],
-    [True, True, False, True, True, True,   False,   True],
-    [False, False, True, True, True, True,   True,   True],
-    [True, False, True, True, True, True,   True,   False],
-    [False, True, True, True, True, True,   True,   False],
-    [True, True, True, True, True, True,   True,   True],]
-
-
-# results = []
-
-# for comb in mat:
-#     t = TestManager(options)
-
-#     test = t.createTest(comb)
-
-#     test.compile()
-
-#     test.run()
-
-#     idstr = "".join(map(lambda x: str(int(x)), comb))
-
-#     print idstr, test.get_result()
-
-#     results.append(test.get_result())
-
-# for i in range(8):
-#     val = 0
-#     n = 0
-
-#     for comb,res in zip(mat, results):
-#         if comb[i] == True:
-#             val = val + res
-#         else:
-#             val = val - res
-#         n += 1
-#     val = val / n
-
-#     print "Factor {} has effect {}".format(i, val)
-
-
-# for i in range(70):
-#     comb = [False for j in range(70)]
-#     comb[i] = True
-#     t = TestManager(options)
-
-#     test = t.createTest(comb)
-
-#     test.compile()
-
-#     test.run()
-
-#     idstr = "".join(map(lambda x: str(int(x)), comb))
-
-#     print idstr, test.get_result()
-
-#     results.append(test.get_result())
+    print "Benchmark ran in",test.get_result(),"seconds"
