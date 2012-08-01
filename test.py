@@ -15,14 +15,14 @@ comb_mat = fracfact.convert_matrix_to_truefalse(mat)
 fracfact.print_matrix(header, mat)
 
 options = [
-    benchmark.Option(("-ftree-ch", "-fno-tree-ch"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-copyrename", "-fno-tree-copyrename"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-dce", "-fno-tree-dce"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-dominator-opts", "-fno-tree-dominator-opts"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-dse", "-fno-tree-dse"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-fre", "-fno-tree-fre"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-sra", "-fno-tree-sra"), benchmark.Option.TrueFalse),
-    benchmark.Option(("-ftree-ter", "-fno-tree-ter"), benchmark.Option.TrueFalse)
+    benchmark.Option("-ftree-ch", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-copyrename", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-dce", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-dominator-opts", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-dse", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-fre", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-sra", benchmark.Option.TrueFalse),
+    benchmark.Option("-ftree-ter", benchmark.Option.TrueFalse)
 ]
 
 

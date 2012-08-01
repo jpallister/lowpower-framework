@@ -5,25 +5,26 @@ import subprocess
 import re
 
 class Option(object):
-    TrueFalse = 1
+    TrueFalse = 1   # True or false option of the form
 
     def __init__(self, flag, ftype):
-        self.flag = flag
         self.ftype = ftype
 
         if ftype == Option.TrueFalse:
             self.value = False
+            m = re.match(r'-f([a-z-]+)', flag)
+            if m is None:
+                raise ValueError("Format for flag \"" + flag + "\" is incorrect -f<x>")
+
+            self.flag = {True: flag, False: '-fno-' + m.group(1)}
 
     def setValue(self, value):
-        self.value = value
+        if self.ftype == Option.TrueFalse:
+            self.value = bool(value)
 
     def getOption(self):
         if self.ftype == Option.TrueFalse:
-            if self.value == True:
-                return self.flag[0]
-            else:
-                return self.flag[1]
-
+            return self.flag[self.value]
         return None
 
 benchmark_cmdline = {
@@ -44,10 +45,14 @@ class Test(object):
     def compile(self):
         self.executable = Test.working_dir + "/"  + self.benchmark
         os.system("rm "+self.executable);
-        cmdline = " ".join(self.flags)
-        cmdline = "gcc -O1 " + cf + cmdline + " -o " + Test.working_dir + "/"  + self.benchmark + " " + benchmark_cmdline[self.benchmark]
-        os.system(cmdline + " 2> /dev/null")
-#        os.system(cmdline)
+
+        cmdline =  "gcc -O1 "
+        cmdline += cf                                                   # Add negative flags
+        cmdline += " ".join(self.flags)                                 # Add flags
+        cmdline += " -o " + Test.working_dir + "/"  + self.benchmark    # Output compiled file
+        cmdline += " " + benchmark_cmdline[self.benchmark]              # Benchmark individual flags
+
+        os.system(cmdline + " 2> /dev/null")    # Compile
 
 
     def run(self):
@@ -98,14 +103,14 @@ class TestManager(object):
 
 if __name__ == "__main__":
     options = [
-        Option(("-ftree-ch", "-fno-tree-ch"), Option.TrueFalse),
-        Option(("-ftree-copyrename", "-fno-tree-copyrename"), Option.TrueFalse),
-        Option(("-ftree-dce", "-fno-tree-dce"), Option.TrueFalse),
-        Option(("-ftree-dominator-opts", "-fno-tree-dominator-opts"), Option.TrueFalse),
-        Option(("-ftree-dse", "-fno-tree-dse"), Option.TrueFalse),
-        Option(("-ftree-fre", "-fno-tree-fre"), Option.TrueFalse),
-        Option(("-ftree-sra", "-fno-tree-sra"), Option.TrueFalse),
-        Option(("-ftree-ter", "-fno-tree-ter"), Option.TrueFalse)
+        Option("-ftree-ch", Option.TrueFalse),
+        Option("-ftree-copyrename", Option.TrueFalse),
+        Option("-ftree-dce", Option.TrueFalse),
+        Option("-ftree-dominator-opts", Option.TrueFalse),
+        Option("-ftree-dse", Option.TrueFalse),
+        Option("-ftree-fre", Option.TrueFalse),
+        Option("-ftree-sra", Option.TrueFalse),
+        Option("-ftree-ter", Option.TrueFalse)
     ]
 
     print "Creating a benchmark and running it"
