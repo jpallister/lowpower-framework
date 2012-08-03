@@ -1,13 +1,27 @@
-#include "stm32f10x.h"
+#include "platformcode.h"
 
-#define STACK_TOP 0x20002000
+#define ADDR(x)     (*((unsigned long*)(x)))
+
+#define RCC_BASE        0x40021000
+#define RCC_AHBENR      ADDR(RCC_BASE + 0x14)
+
+#define GPIOC_BASE      0x48000800
+#define GPIOC_MODER     ADDR(GPIOC_BASE + 0x00)
+#define GPIOC_OTYPER    ADDR(GPIOC_BASE + 0x04)
+#define GPIOC_BSRR      ADDR(GPIOC_BASE + 0x18)
+
+void nmi_handler();
+void hardfault_handler();
+void main();
+
+void _mainCRTStartup();
 
 unsigned int * myvectors[4]
 __attribute__ ((section("vectors")))= {
-    (unsigned int *)    STACK_TOP,
-    (unsigned int *)    main,
-    (unsigned int *)    nmi_handler,
-    (unsigned int *)    hardfault_handler
+   (unsigned int *)    _mainCRTStartup,
+   (unsigned int *)    _mainCRTStartup,
+   (unsigned int *)    _mainCRTStartup,
+   (unsigned int *)    _mainCRTStartup
 };
 
 void nmi_handler(void)
@@ -23,40 +37,18 @@ void hardfault_handler(void)
 
 void initialise_trigger()
 {
-    RCC->APB1ENR |= 0x4;    // Turn on GPIO C
+    RCC_AHBENR |= 1<<19;    // Turn on GPIO C
 
-    GPIOC->CRL = 0x01;
-    GPIOC->ODR = 0xFF;
-
-    while(1){
-        start_trigger();
-        delay();
-        delay();
-        delay();
-        delay();
-        stop_trigger();
-        delay();
-        delay();
-        delay();
-        delay();
-
-    }
-}
-
-void delay(void)
-{
-    int i = 100000;                                                 /* About 1/4 second delay */
-    while (i-- > 0) {
-        asm("nop");                                                 /* This stops it optimising code out */
-    }
+    GPIOC_MODER = 0x01;     // Set GPIOC pin 1 to output
+    GPIOC_BSRR = 0x00010000;// Clear bit so pin is pulled low
 }
 
 void start_trigger()
 {
-    GPIOC->ODR = 0;
+    GPIOC_BSRR = 0x00000001;// Pull bit high
 }
 
 void stop_trigger()
 {
-    GPIOC->ODR = 0xFF;
+    GPIOC_BSRR = 0x00010000;// bit low
 }
