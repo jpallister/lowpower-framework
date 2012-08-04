@@ -3,16 +3,16 @@ import fracfact
 import itertools
 
 n_factors = 8
-tests_lg2 = 4
+tests_lg2 = 5
 
 n_tests = 2**tests_lg2
 
-header, best_dist = fracfact.experiment(n_factors, n_tests)
-mat = fracfact.gen_frac_factorial(fracfact.gen_full_factorial(tests_lg2), header)
+m = fracfact.FactorialMatrix(n_factors)
 
-comb_mat = fracfact.convert_matrix_to_truefalse(mat)
+m.fractionFactorial(tests_lg2)
+m.display()
 
-fracfact.print_matrix(header, mat)
+comb_mat = m.getTrueFalse()
 
 options = [
     benchmark.Option("-ftree-ch", benchmark.Option.TrueFalse),
@@ -25,23 +25,25 @@ options = [
     benchmark.Option("-ftree-ter", benchmark.Option.TrueFalse)
 ]
 
-
+#tm = benchmark.TestManager(optionsfile="options-4.7.1.csv")
 tm = benchmark.TestManager(options)
-results = []
 
-for comb in comb_mat:
+for i, comb in enumerate(comb_mat):
     test = tm.createTest(comb)
     test.compile()
     test.run()
     r = test.get_result()
+
+    m.addResult(i, r)
+
     idstr = "".join(map(lambda x: str(int(x)), comb))
     print idstr, r
-    results.append(r)
 
-for c in itertools.combinations(header, 2):
-    v = fracfact.get_factor(mat, header, c, results)
+
+for c in itertools.combinations(m.header, 2):
+    v = m.getFactor(c)
     print "Combination",c,"has effect",v
 
-for i, c in enumerate(header):
-    v = fracfact.get_factor(mat, header, c, results)
+for i, c in enumerate(m.header):
+    v = m.getFactor(c)
     print "Factor",c,"(",i,") has effect",v
