@@ -3,11 +3,12 @@ import os
 import os.path
 import subprocess
 import re
+import csv
 
 class Option(object):
     TrueFalse = 1   # True or false option of the form
 
-    def __init__(self, flag, ftype):
+    def __init__(self, flag, ftype, description="", prerequisites=None, implied=None):
         self.ftype = ftype
 
         if ftype == Option.TrueFalse:
@@ -81,8 +82,31 @@ class Test(object):
 
 class TestManager(object):
 
-    def __init__(self, options):
-        self.options = copy.copy(options)
+    def __init__(self, options=None, optionsfile=None):
+        self.options = []
+
+        if options is not None:
+            self.options = copy.copy(options)
+
+        if optionsfile is not None:
+            self.loadOptions(optionsfile)
+
+    def loadOptions(self, optionsfile):
+        of = csv.reader(open(optionsfile, "rt"), delimiter=',', quotechar='"')
+
+        for opt in of:
+            flag = opt[0]
+            grouping = opt[1]
+            values = opt[3]
+            default = opt[4]
+            desc = opt[6]
+            pre = opt[7]
+            implied = opt[8]
+
+            if values == "":
+                self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied))
+                print "Adding option", flag
+
 
     def createTest(self, values, benchmark="dhrystone"):
         if len(values) != len(self.options):
