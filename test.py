@@ -2,17 +2,16 @@ import benchmark
 import fracfact
 import itertools
 
-n_factors = 8
-tests_lg2 = 5
+# n_factors = 8
+# tests_lg2 = 5
 
-n_tests = 2**tests_lg2
+# n_tests = 2**tests_lg2
 
-m = fracfact.FactorialMatrix(n_factors)
+# m = fracfact.FactorialMatrix(n_factors)
 
-m.fractionFactorial(tests_lg2)
-m.display()
+# m.fractionFactorial(tests_lg2)
+# m.display()
 
-comb_mat = m.getTrueFalse()
 
 options = [
     benchmark.Option("-ftree-ch", benchmark.Option.TrueFalse),
@@ -25,8 +24,13 @@ options = [
     benchmark.Option("-ftree-ter", benchmark.Option.TrueFalse)
 ]
 
-#tm = benchmark.TestManager(optionsfile="options-4.7.1.csv")
-tm = benchmark.TestManager(options)
+tm = benchmark.TestManager(optionsfile="options-4.7.1.csv")
+#tm = benchmark.TestManager(options)
+
+m = fracfact.FactorialMatrix(len(tm.options))
+m.combinationFactorial(1)
+
+comb_mat = m.getTrueFalse()[1:]
 
 for i, comb in enumerate(comb_mat):
     test = tm.createTest(comb)

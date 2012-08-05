@@ -2,6 +2,36 @@ import itertools
 import subprocess
 import math
 
+from itertools import permutations
+
+# Code from http://stackoverflow.com/questions/6284396/permutations-with-unique-values
+# http://creativecommons.org/licenses/by-sa/3.0/
+class unique_element:
+    def __init__(self,value,occurrences):
+        self.value = value
+        self.occurrences = occurrences
+
+def perm_unique(elements):
+    eset=set(elements)
+    listunique = [unique_element(i,elements.count(i)) for i in eset]
+    u=len(elements)
+    return perm_unique_helper(listunique,[0]*u,u-1)
+
+def perm_unique_helper(listunique,result_list,d):
+    if d < 0:
+        yield tuple(result_list)
+    else:
+        for i in listunique:
+            if i.occurrences > 0:
+                result_list[d]=i.value
+                i.occurrences-=1
+                for g in  perm_unique_helper(listunique,result_list,d-1):
+                    yield g
+                i.occurrences+=1
+# End code from stackoverflow
+
+# FactorialMatrix Class
+
 class FactorialMatrix(object):
     def __init__(self, factors):
         self.n_factors = factors
@@ -99,6 +129,12 @@ class FactorialMatrix(object):
 
         return cols, best_dist
 
+    def combinationFactorial(self, n=1):
+        r = [-1] * (self.n_factors - n) + [1] * n
+
+        self.header = map(chr, range(65, 65+self.n_factors))
+        self.matrix = list(perm_unique(r))
+
 
     def display(self):
         for h in self.header:
@@ -179,4 +215,8 @@ if __name__ == "__main__":
     print "Extending the earlier matrix to 8 factors with these columns gives:"
     m2.fractionFactorial(4, header)
     m2.display()
+
+    m3 = FactorialMatrix(12)
+    m3.combinationFactorial(2)
+    m3.display()
 
