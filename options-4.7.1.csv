@@ -6,7 +6,7 @@
 -fprefetch-loop-arrays,O0,NoOs,,,,"If supported by the target machine, generate instructions to prefetch memory to improve the performance of loops that access large arrays.",,
 -ftree-vect-loop-version,O0,NoOs,,,,"Perform loop versioning when doing loop vectorization on trees. When a loop appears to be vectorizable except that data alignment or data dependence cannot be determined at compile time, then vectorized and non-vectorized versions of the loop are generated along with run-time checks for alignment or dependence to control which version is executed.",,
 -funit-at-a-time,O0,,,,,This option is left for compatibility reasons. ,,
--fzero-initialized-bss,O0,,,,,When disabled variables are not put in BSS.,,
+-fzero-initialized-in-bss,O0,,,,,When disabled variables are not put in BSS.,,
 -fauto-inc-dec,O1,,,,,Combine increments or decrements of addresses with memory accesses. This pass is always skipped on architectures that do not have instructions to support this.,,
 -fcombine-stack-adjustments,O1,,,,,Tracks stack adjustments (pushes and pops) and stack memory references and then tries to find ways to combine them.,,
 -fcompare-elim,O1,,,,,"After register allocation and post-register allocation instruction splitting, identify arithmetic instructions that compute processor flags similar to a comparison operation based on that arithmetic. If possible, eliminate the explicit comparison operation.",,
@@ -120,7 +120,7 @@ e'
 -flto,,,,,,This option runs the standard link-time optimizer.,,
 -flto-partition,,,"1to1, balanced, none",balanced,,Specify the partitioning algorithm used by the link-time optimizer. The value is either 1to1 to specify a partitioning mirroring the original source files or balanced to specify partitioning into equally sized chunks (whenever possible). Specifying none as an algorithm disables partitioning and streaming completely.,,
 -fmerge-all-constants,,,,,N,Attempt to merge identical constants and identical variables.,,-fmerge-constants
--fmodule-sched-allow-regmoves,,,,,,Perform more aggressive SMS based modulo scheduling with register moves allowed. By setting this flag certain anti-dependences edges will be deleted which will trigger the generation of reg-moves based on the life-range analysis. This option is effective only with -fmodulo-sched enabled. ,-fmodulo-sched,
+-fmodulo-sched-allow-regmoves,,,,,,Perform more aggressive SMS based modulo scheduling with register moves allowed. By setting this flag certain anti-dependences edges will be deleted which will trigger the generation of reg-moves based on the life-range analysis. This option is effective only with -fmodulo-sched enabled. ,-fmodulo-sched,
 -fmodulo-sched,,,,,,Perform swing modulo scheduling immediately before the first scheduling pass. This pass looks at innermost loops and reorders their instructions by overlapping different iterations. ,,
 -fpeel-loops,,,,,,Peels loops for which there is enough information that they do not roll much (from profile feedback).,,-frename-registers
 -frename-registers,,,,,,"Attempt to avoid false dependencies in scheduled code by making use of registers left over after register allocation. This optimization will most benefit processors with lots of registers. Depending on the debug information format adopted by the target, however, it can make debugging impossible, since variables will no longer stay in a “home register”.",,

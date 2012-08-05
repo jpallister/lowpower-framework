@@ -14,7 +14,7 @@ class Option(object):
 
         if ftype == Option.TrueFalse:
             self.value = False
-            m = re.match(r'-f([a-z-]+)', flag)
+            m = re.match(r'-f([a-z0-9\-]+)$', flag.strip())
             if m is None:
                 raise ValueError("Format for flag \"" + flag + "\" is incorrect -f<x>")
 
@@ -38,6 +38,7 @@ cf = " -fno-branch-count-reg -fno-combine-stack-adjustments -fno-common -fno-com
 
 class Test(object):
     working_dir = "testing"
+    compiler = "~/x86_toolchain/bin/gcc"
 
     def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags=""):
         self.flags = flags
@@ -52,10 +53,10 @@ class Test(object):
     def compile(self):
         """Compile the benchmark given the options"""
 
-        os.system("mkdir -p "+ self.exec_dir + " > /dev/null")
+        os.system("mkdir -p "+ self.exec_dir + " 2> /dev/null")
         os.system("rm "+self.executable);
 
-        cmdline =  "gcc -O1 "
+        cmdline =  Test.compiler + " -O1 "
         cmdline += self.negate_flags + " "                              # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
         cmdline += " -o " + self.executable                             # Output compiled file
@@ -155,7 +156,7 @@ class TestManager(object):
         map(Option.setValue, local_options, values)
         flags = map(Option.getOption, local_options)
 
-        t = Test(benchmark, flags, self.createID(values), 1, cf)
+        t = Test(benchmark, flags, self.createID(values), 3)
 
         return t
 
