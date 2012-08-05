@@ -8,8 +8,9 @@ import csv
 class Option(object):
     TrueFalse = 1   # True or false option of the form
 
-    def __init__(self, flag, ftype, description="", prerequisites=None, implied=None):
+    def __init__(self, flag, ftype, description="", prerequisites=None, implied=None, grouping=None):
         self.ftype = ftype
+        self.description = description
 
         if ftype == Option.TrueFalse:
             self.value = False
@@ -38,45 +39,79 @@ cf = " -fno-branch-count-reg -fno-combine-stack-adjustments -fno-common -fno-com
 class Test(object):
     working_dir = "testing"
 
-    def __init__(self, benchmark, flags, repetitions=3):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags=""):
         self.flags = flags
+        self.negate_flags = negate_flags
         self.benchmark = benchmark
+        self.uid = uid
         self.repetitions = repetitions
 
+        self.exec_dir = Test.working_dir + "/" + self.uid
+        self.executable = self.exec_dir + "/" + self.benchmark
+
     def compile(self):
-        self.executable = Test.working_dir + "/"  + self.benchmark
+        """Compile the benchmark given the options"""
+
+        os.system("mkdir -p "+ self.exec_dir + " > /dev/null")
         os.system("rm "+self.executable);
 
         cmdline =  "gcc -O1 "
-        cmdline += cf                                                   # Add negative flags
+        cmdline += self.negate_flags + " "                              # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
-        cmdline += " -o " + Test.working_dir + "/"  + self.benchmark    # Output compiled file
+        cmdline += " -o " + self.executable                             # Output compiled file
         cmdline += " " + benchmark_cmdline[self.benchmark]              # Benchmark individual flags
 
-        os.system(cmdline + " 2> /dev/null")    # Compile
+        # Store some data for later use
+        f = open(self.exec_dir + "/cmdline", "w")
+        f.write(cmdline+"\n")
+        f.close()
 
+        f = open(self.exec_dir + "/flags", "w")
+        f.write("\n".join(self.flags) + "\n")
+        f.close
+
+        # Run the compilation
+        os.system(cmdline + " 2> " + self.exec_dir+"/compile.log")    # Compile
 
     def run(self):
+        """Run the compiled benchmark"""
+
         self.times = []
 
         for i in range(self.repetitions):
-            # print "Running '{}' {}/{}".format(self.benchmark, iTrue,, self.repetitions)
-
             p = subprocess.Popen("time " + self.executable, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
             output = p.communicate()[0]
-
-            # print output
 
             m = re.match(r'(\d+\.\d+)user', output)
             if m == None:
                 print output
                 raise Error()
-            # print m.group(1)
 
             self.times.append(float(m.group(1)))
 
+        f = open(self.exec_dir + "/results", "a")
+        for r in self.times:
+            f.write(str(r)+"\n")
+        f.close()
+
+    def loadResults(self):
+        """Load the results from the saved file"""
+
+        f = open(self.exec_dir + "/results", "r")
+        results = map(float, f.readlines())
+
+    def loadOrRun(self):
+        """Try to load the results, but if they cannot be found, run the test"""
+
+        try:
+            self.loadResults()
+        except IOError:
+            self.compile()
+            self.run()
+
+
     def get_result(self):
+        """Return the average result for the test"""
         return sum(self.times)/len(self.times)
 
 
@@ -107,6 +142,9 @@ class TestManager(object):
                 self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied))
                 print "Adding option", flag
 
+    def createID(self, values):
+        return "{0:0>{1}}".format(hex(int("".join(map(lambda x: str(int(x)), values)), 2))[2:], (len(values)+3)//4)
+
 
     def createTest(self, values, benchmark="dhrystone"):
         if len(values) != len(self.options):
@@ -115,10 +153,9 @@ class TestManager(object):
         local_options = copy.deepcopy(self.options)
 
         map(Option.setValue, local_options, values)
-
         flags = map(Option.getOption, local_options)
 
-        t = Test(benchmark, flags, 1)
+        t = Test(benchmark, flags, self.createID(values), 1, cf)
 
         return t
 
