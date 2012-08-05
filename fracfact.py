@@ -61,7 +61,7 @@ class FactorialMatrix(object):
         return best_dist
 
     def hamming(self, bits, dist):
-        p = subprocess.Popen("./hamming {} {}".format(int(bits),int(dist)), shell=True, stdout=subprocess.PIPE)
+        p = subprocess.Popen("./hamming {0} {1}".format(int(bits),int(dist)), shell=True, stdout=subprocess.PIPE)
         lines = p.communicate()[0].split("\n")[2:-1]
         return map(lambda x: int(x, 16), lines)
 
@@ -102,11 +102,11 @@ class FactorialMatrix(object):
 
     def display(self):
         for h in self.header:
-            print "{: >{}}".format(h, max([len(h),2])),
+            print "{0: >{1}}".format(h, max([len(h),2])),
         print ""
         for r in self.matrix:
             for h, c in zip(self.header,r):
-                print "{: >+{}}".format(c, max([len(h),2])),
+                print "{0: >+{1}}".format(c, max([len(h),2])),
             print ""
 
     def addResult(self, combination, result):
