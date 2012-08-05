@@ -99,7 +99,7 @@ class Test(object):
         """Load the results from the saved file"""
 
         f = open(self.exec_dir + "/results", "r")
-        results = map(float, f.readlines())
+        self.times = map(float, f.readlines())
 
     def loadOrRun(self):
         """Try to load the results, but if they cannot be found, run the test"""
@@ -144,7 +144,7 @@ class TestManager(object):
                 print "Adding option", flag
 
     def createID(self, values):
-        return "{0:0>{1}}".format(hex(int("".join(map(lambda x: str(int(x)), values)), 2))[2:], (len(values)+3)//4)
+        return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x)), values)), 2), (len(values)+3)//4)
 
 
     def createTest(self, values, benchmark="dhrystone"):
