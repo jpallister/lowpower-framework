@@ -11,6 +11,14 @@ class Option(object):
     def __init__(self, flag, ftype, description="", prerequisites=None, implied=None, grouping=None):
         self.ftype = ftype
         self.description = description
+        if prerequisites is None:
+            self.prerequisites = ""
+        else:
+            self.prerequisites = re.findall(r'(-f[a-z0-9\-]+)', prerequisites)
+        if implied is None:
+            self.implied = ""
+        else:
+            self.implied = re.findall(r'(-f[a-z0-9\-]+)', implied)
 
         if ftype == Option.TrueFalse:
             self.value = False
@@ -54,7 +62,7 @@ class Test(object):
         """Compile the benchmark given the options"""
 
         os.system("mkdir -p "+ self.exec_dir + " 2> /dev/null")
-        os.system("rm "+self.executable);
+        os.system("rm "+self.executable + " 2> /dev/null");
 
         cmdline =  Test.compiler + " -O1 "
         cmdline += self.negate_flags + " "                              # Add negative flags
@@ -99,7 +107,7 @@ class Test(object):
         """Load the results from the saved file"""
 
         f = open(self.exec_dir + "/results", "r")
-        results = map(float, f.readlines())
+        self.times = map(float, f.readlines())
 
     def loadOrRun(self):
         """Try to load the results, but if they cannot be found, run the test"""
@@ -111,7 +119,7 @@ class Test(object):
             self.run()
 
 
-    def get_result(self):
+    def getResult(self):
         """Return the average result for the test"""
         return sum(self.times)/len(self.times)
 
@@ -143,22 +151,44 @@ class TestManager(object):
                 self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied))
                 print "Adding option", flag
 
-    def createID(self, values):
-        return "{0:0>{1}}".format(hex(int("".join(map(lambda x: str(int(x)), values)), 2))[2:], (len(values)+3)//4)
+    def createID(self, local_options):
+        return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x.value)), local_options)), 2), (len(local_options)+3)//4)
 
 
     def createTest(self, values, benchmark="dhrystone"):
         if len(values) != len(self.options):
             raise ValueError("Option values array incorrect size")
 
-        local_options = copy.deepcopy(self.options)
+        local_options = self.createOptions(values)
 
-        map(Option.setValue, local_options, values)
         flags = map(Option.getOption, local_options)
 
-        t = Test(benchmark, flags, self.createID(values), 3)
+        t = Test(benchmark, flags, self.createID(local_options), 3)
 
         return t
+
+    def createOptions(self, values):
+        local_options = copy.deepcopy(self.options)
+        for i, v in enumerate(values):
+            if v is True:
+                local_options[i].setValue(True)
+                #  Check prerequisites, if none enabled, enable the first prerequisite
+                if len(local_options[i].prerequisites) > 0:
+                    enabled = False
+                    for f in local_options[i].implied:
+                        for opt in local_options:
+                            if opt.flag[True] == f and opt.value is True:
+                                enabled = True
+                    if not enabled:
+                        for opt in local_options:
+                            if opt.flag[True] == local_options[i].prerequisites[0]:
+                                opt.setValue(True)
+                for f in local_options[i].implied:
+                    for opt in local_options:
+                        if opt.flag[True] == f:
+                            opt.setValue(True)
+
+        return local_options
 
 
 # Testing purposes
