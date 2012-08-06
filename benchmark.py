@@ -9,6 +9,11 @@ class Option(object):
     TrueFalse = 1   # True or false option of the form
 
     def __init__(self, flag, ftype, description="", prerequisites=None, implied=None, grouping=None):
+        """ Initialise the option, given the values.
+
+            The flag's pattern is checked and its inverse automatically derived.
+        """
+
         self.ftype = ftype
         self.description = description
         if prerequisites is None:
@@ -45,6 +50,9 @@ benchmark_cmdline = {
 cf = " -fno-branch-count-reg -fno-combine-stack-adjustments -fno-common -fno-compare-elim -fno-cprop-registers -fno-defer-pop -fno-delete-null-pointer-checks -fno-dwarf2-cfi-asm -fno-early-inlining -fno-eliminate-unused-debug-types -fno-forward-propagate -fno-function-cse -fno-gcse-lm -fno-guess-branch-probability -fno-ident -fno-if-conversion -fno-if-conversion2 -fno-inline -fno-inline-functions-called-once -fno-ipa-profile -fno-ipa-pure-const -fno-ipa-reference -fno-ira-share-save-slots -fno-ira-share-spill-slots -fno-ivopts -fno-keep-static-consts -fno-leading-underscore -fno-math-errno -fno-merge-constants -fno-merge-debug-strings -fno-move-loop-invariants -fno-omit-frame-pointer -fno-peephole -fno-prefetch-loop-arrays -fno-reg-struct-return -fno-sched-critical-path-heuristic -fno-sched-dep-count-heuristic -fno-sched-group-heuristic -fno-sched-interblock -fno-sched-last-insn-heuristic -fno-sched-rank-heuristic -fno-sched-spec -fno-sched-spec-insn-heuristic -fno-sched-stalled-insns-dep -fno-show-column -fno-signed-zeros -fno-split-ivs-in-unroller -fno-split-wide-types -fno-stack-protector -fno-strict-volatile-bitfields -fno-toplevel-reorder -fno-trapping-math -fno-tree-bit-ccp -fno-tree-ccp -fno-tree-copy-prop -fno-tree-cselim -fno-tree-forwprop -fno-tree-loop-if-convert -fno-tree-loop-im -fno-tree-loop-ivcanon -fno-tree-loop-optimize -fno-tree-phiprop -fno-tree-pta -fno-tree-reassoc -fno-tree-scev-cprop -fno-tree-sink -fno-tree-slp-vectorize -fno-tree-vect-loop-version -fno-unit-at-a-time -fno-unwind-tables -fno-vect-cost-model -fno-verbose-asm -fno-zero-initialized-in-bss "
 
 class Test(object):
+    """ Hold the information relating to a test and necessary to run it.
+    """
+
     working_dir = "testing"
     compiler = "~/x86_toolchain/bin/gcc"
 
@@ -125,6 +133,11 @@ class Test(object):
 
 
 class TestManager(object):
+    """This class manages a list of options to be combined when generating individual
+    tests. A list of all options can be loaded from a csv file, or specified manually.
+    A subset of the available options can be selected. This allows all remaining
+    options to be negated, removing their impact on the test.
+    """
 
     def __init__(self, options=None, optionsfile=None):
         self.options = []
@@ -136,6 +149,28 @@ class TestManager(object):
             self.loadOptions(optionsfile)
 
     def loadOptions(self, optionsfile):
+        """Load options from a CSV file.
+
+            The file should be structured as follows:
+                Flags,Grouping,Os,Values,Default,
+                    Conforming?,Description,Prerequisites,Implies
+
+            Flag        The actual value passed on the command line
+            Grouping    O0, O1, O2, O3 or empty. If this is O0 the flag is enabled
+                            by default. If empty then this flag is not enabled by any
+                            grouping
+            Os          Whether this flag appears in the -Os group. This can be enabled or
+                            disabled. If disabled, this flag is explicity turned off by -Os
+            values      If the flag is not a simple true or false, what values can it take.
+                            Currently this parameter is not well defined, so options with it
+                            non zero are ignored.
+            default     If the flag is not a simple true or false, what is its default value
+            Conforming? If this is set to N, enabling this flag results in non-conforming
+                        behaviour
+            Descrip...  A description of what the flag does.
+            Prerequ...  Which flags must be turned on for this flag to have an effect.
+            Implied     Which flags are implied as on by enabling this flag.
+        """
         of = csv.reader(open(optionsfile, "rt"), delimiter=',', quotechar='"')
 
         for opt in of:
@@ -152,10 +187,17 @@ class TestManager(object):
                 print "Adding option", flag
 
     def createID(self, local_options):
+        """Create a hexidecimal ID based on which options are on"""
         return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x.value)), local_options)), 2), (len(local_options)+3)//4)
 
 
     def createTest(self, values, benchmark="dhrystone"):
+        """Create a test
+
+            Values      A list of true or false values
+            Benchmark   The name of the benchmark to be used
+        """
+
         if len(values) != len(self.options):
             raise ValueError("Option values array incorrect size")
 
@@ -168,6 +210,14 @@ class TestManager(object):
         return t
 
     def createOptions(self, values):
+        """Create an options array from the true or false values given
+
+            This function checks that at least one prerequisite is enabled. If not
+            it enables the first one it finds.
+
+            Also all implied flags are enabled.
+        """
+
         local_options = copy.deepcopy(self.options)
         for i, v in enumerate(values):
             if v is True:
