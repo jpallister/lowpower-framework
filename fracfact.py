@@ -166,7 +166,10 @@ class FactorialMatrix(object):
         except TypeError:
             fname = factor
 
-        val = 0
+        n_on = 0
+        v_on = 0
+        n_off = 0
+        v_off = 0
 
         for row, value in zip(self.matrix, self.results):
             low = 0
@@ -174,11 +177,13 @@ class FactorialMatrix(object):
                 if row[self.header.index(it_h)] == -1:
                     low += 1
             if low % 2 == 0:
-                val += value
+                v_on += value
+                n_on += 1
             else:
-                val -= value
+                v_off += value
+                n_off += 1
 
-        return val / len(self.matrix)
+        return v_on/n_on - v_off/n_off;
 
     def getConfounding(self, factor):
         pass
