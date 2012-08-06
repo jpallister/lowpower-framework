@@ -62,7 +62,7 @@ class Test(object):
         """Compile the benchmark given the options"""
 
         os.system("mkdir -p "+ self.exec_dir + " 2> /dev/null")
-        os.system("rm "+self.executable);
+        os.system("rm "+self.executable + " 2> /dev/null");
 
         cmdline =  Test.compiler + " -O1 "
         cmdline += self.negate_flags + " "                              # Add negative flags
@@ -119,7 +119,7 @@ class Test(object):
             self.run()
 
 
-    def get_result(self):
+    def getResult(self):
         """Return the average result for the test"""
         return sum(self.times)/len(self.times)
 
