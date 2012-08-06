@@ -76,6 +76,7 @@ class Test(object):
         cmdline += self.negate_flags + " "                              # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
         cmdline += " -o " + self.executable                             # Output compiled file
+        cmdline += " -Wa,-aln="+self.
         cmdline += " " + benchmark_cmdline[self.benchmark]              # Benchmark individual flags
 
         # Store some data for later use
