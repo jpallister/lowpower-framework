@@ -140,6 +140,7 @@ class TestManager(object):
     """
 
     def __init__(self, options=None, optionsfile=None):
+        self.useSubset = False
         self.options = []
 
         if options is not None:
@@ -190,6 +191,18 @@ class TestManager(object):
         """Create a hexidecimal ID based on which options are on"""
         return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x.value)), local_options)), 2), (len(local_options)+3)//4)
 
+    def useOptionSubset(self, flags):
+        """Create a subset of options based on the flags given"""
+        self.useSubset = True
+        self.options_subset = []
+        self.options_notset = []
+
+        for opt in self.options:
+            if opt.flag[True] in flags:
+                self.options_subset.append(opt)
+            else:
+                self.options_notset.append(opt)
+
 
     def createTest(self, values, benchmark="dhrystone"):
         """Create a test
@@ -198,14 +211,23 @@ class TestManager(object):
             Benchmark   The name of the benchmark to be used
         """
 
-        if len(values) != len(self.options):
-            raise ValueError("Option values array incorrect size")
+        if self.useSubset:
+            if len(values) != len(self.options_subset):
+                raise ValueError("Option values array incorrect size")
+        else:
+            if len(values) != len(self.options):
+                raise ValueError("Option values array incorrect size")
 
         local_options = self.createOptions(values)
 
         flags = map(Option.getOption, local_options)
 
-        t = Test(benchmark, flags, self.createID(local_options), 3)
+        if self.useSubset:
+            negated = " ".join(map(Option.getOption, self.options_notset))
+        else:
+            negated = ""
+
+        t = Test(benchmark, flags, self.createID(local_options), 3, negate_flags=negated)
 
         return t
 
@@ -218,22 +240,26 @@ class TestManager(object):
             Also all implied flags are enabled.
         """
 
-        local_options = copy.deepcopy(self.options)
-        for i, v in enumerate(values):
+        if self.useSubset:
+            local_options = copy.deepcopy(self.options_subset)
+        else:
+            local_options = copy.deepcopy(self.options)
+
+        for loc_opt, v in zip(local_options, values):
+            loc_opt.setValue(v)
             if v is True:
-                local_options[i].setValue(True)
                 #  Check prerequisites, if none enabled, enable the first prerequisite
-                if len(local_options[i].prerequisites) > 0:
+                if len(loc_opt.prerequisites) > 0:
                     enabled = False
-                    for f in local_options[i].implied:
+                    for f in loc_opt.implied:
                         for opt in local_options:
                             if opt.flag[True] == f and opt.value is True:
                                 enabled = True
                     if not enabled:
                         for opt in local_options:
-                            if opt.flag[True] == local_options[i].prerequisites[0]:
+                            if opt.flag[True] == loc_opt.prerequisites[0]:
                                 opt.setValue(True)
-                for f in local_options[i].implied:
+                for f in loc_opt.implied:
                     for opt in local_options:
                         if opt.flag[True] == f:
                             opt.setValue(True)
