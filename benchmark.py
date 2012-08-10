@@ -152,9 +152,10 @@ class TestManager(object):
     options to be negated, removing their impact on the test.
     """
 
-    def __init__(self, options=None, optionsfile=None):
+    def __init__(self, options=None, optionsfile=None, repetitions=3):
         self.useSubset = False
         self.options = []
+        self.repetitions = repetitions
 
         if options is not None:
             self.options = copy.copy(options)
@@ -232,15 +233,15 @@ class TestManager(object):
                 raise ValueError("Option values array incorrect size")
 
         local_options = self.createOptions(values)
-
         flags = map(Option.getOption, local_options)
 
+        # If we are only using a subset of the flags, negate the others
         if self.useSubset:
             negated = " ".join(map(Option.getOption, self.options_notset))
         else:
             negated = ""
 
-        t = Test(benchmark, flags, self.createID(local_options), 3, negate_flags=negated)
+        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated)
 
         return t
 
