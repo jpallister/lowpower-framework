@@ -9,7 +9,7 @@ import csv
 compiler_prefix = "/home/james"
 framework_prefix = "/home/james/University/summer12/lowpower-framework"
 benchmark_prefix = "/home/james/University/summer12/lowpower-framework"
-working_prefix = "/home/james/University/summer12/lowpower-framework/testing"
+default_working_prefix = "/home/james/University/summer12/lowpower-framework/testing"
 
 platforms = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
@@ -67,7 +67,7 @@ class Test(object):
 
     compiler = "~/x86_toolchain/bin/gcc"
 
-    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86"):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix):
         self.flags = flags
         self.negate_flags = negate_flags
         self.benchmark = benchmark
@@ -152,7 +152,7 @@ class TestManager(object):
     options to be negated, removing their impact on the test.
     """
 
-    def __init__(self, options=None, optionsfile=None, repetitions=3):
+    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix):
         self.useSubset = False
         self.options = []
         self.repetitions = repetitions
@@ -241,7 +241,7 @@ class TestManager(object):
         else:
             negated = ""
 
-        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated)
+        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix)
 
         return t
 
