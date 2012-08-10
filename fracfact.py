@@ -135,6 +135,9 @@ class FactorialMatrix(object):
         self.header = map(chr, range(65, 65+self.n_factors))
         self.matrix = list(perm_unique(r))
 
+    def addCombination(self, combination):
+        if combination not in self.matrix:
+            self.matrix.append(combination)
 
     def display(self):
         for h in self.header:
@@ -155,7 +158,11 @@ class FactorialMatrix(object):
                 n = int(combination)
                 self.results[n] = result
             except:
-                pass
+                c = map(lambda x: {True:1, False:-1}[x], combination)
+                if c in self.matrix:
+                    self.results[self.matrix.index(c)] = result
+                else:
+                    raise ValueError("Combination is not part of this matrix")
 
     def getFactor(self, factor):
         try:
