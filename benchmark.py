@@ -5,6 +5,24 @@ import subprocess
 import re
 import csv
 
+# Define command line options for different platforms and benchmarks
+compiler_prefix = "/home/james"
+framework_prefix = "/home/james/University/summer12/lowpower-framework"
+benchmark_prefix = "/home/james/University/summer12/lowpower-framework"
+working_prefix = "/home/james/University/summer12/lowpower-framework/testing"
+
+platforms = {
+    'x86'       : '{cprefix}/x86_toolchain/bin/gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f5.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+}
+
+benchmarks = {
+    "basicmath" : "{bprefix}/basicmath/basicmath_large.c {bprefix}/basicmath/rad2deg.c {bprefix}/basicmath/cubic.c {bprefix}/basicmath/isqrt.c -lm".format(bprefix=benchmark_prefix),
+    "dhrystone" : "{bprefix}/dhrystone/dhry_1.c {bprefix}/dhrystone/dhry_2.c".format(bprefix=benchmark_prefix),
+}
+
+
 class Option(object):
     TrueFalse = 1   # True or false option of the form
 
@@ -42,42 +60,36 @@ class Option(object):
             return self.flag[self.value]
         return None
 
-benchmark_cmdline = {
-    "basicmath" : "basicmath/basicmath_large.c basicmath/rad2deg.c basicmath/cubic.c basicmath/isqrt.c -lm",
-    "dhrystone" : "dhrystone/dhry_1.c dhrystone/dhry_2.c"
-}
-
-cf = " -fno-branch-count-reg -fno-combine-stack-adjustments -fno-common -fno-compare-elim -fno-cprop-registers -fno-defer-pop -fno-delete-null-pointer-checks -fno-dwarf2-cfi-asm -fno-early-inlining -fno-eliminate-unused-debug-types -fno-forward-propagate -fno-function-cse -fno-gcse-lm -fno-guess-branch-probability -fno-ident -fno-if-conversion -fno-if-conversion2 -fno-inline -fno-inline-functions-called-once -fno-ipa-profile -fno-ipa-pure-const -fno-ipa-reference -fno-ira-share-save-slots -fno-ira-share-spill-slots -fno-ivopts -fno-keep-static-consts -fno-leading-underscore -fno-math-errno -fno-merge-constants -fno-merge-debug-strings -fno-move-loop-invariants -fno-omit-frame-pointer -fno-peephole -fno-prefetch-loop-arrays -fno-reg-struct-return -fno-sched-critical-path-heuristic -fno-sched-dep-count-heuristic -fno-sched-group-heuristic -fno-sched-interblock -fno-sched-last-insn-heuristic -fno-sched-rank-heuristic -fno-sched-spec -fno-sched-spec-insn-heuristic -fno-sched-stalled-insns-dep -fno-show-column -fno-signed-zeros -fno-split-ivs-in-unroller -fno-split-wide-types -fno-stack-protector -fno-strict-volatile-bitfields -fno-toplevel-reorder -fno-trapping-math -fno-tree-bit-ccp -fno-tree-ccp -fno-tree-copy-prop -fno-tree-cselim -fno-tree-forwprop -fno-tree-loop-if-convert -fno-tree-loop-im -fno-tree-loop-ivcanon -fno-tree-loop-optimize -fno-tree-phiprop -fno-tree-pta -fno-tree-reassoc -fno-tree-scev-cprop -fno-tree-sink -fno-tree-slp-vectorize -fno-tree-vect-loop-version -fno-unit-at-a-time -fno-unwind-tables -fno-vect-cost-model -fno-verbose-asm -fno-zero-initialized-in-bss "
 
 class Test(object):
     """ Hold the information relating to a test and necessary to run it.
     """
 
-    working_dir = "testing"
     compiler = "~/x86_toolchain/bin/gcc"
 
-    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags=""):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86"):
         self.flags = flags
         self.negate_flags = negate_flags
         self.benchmark = benchmark
         self.uid = uid
         self.repetitions = repetitions
+        self.platform=platform
 
-        self.exec_dir = Test.working_dir + "/" + self.uid
+        self.exec_dir = working_prefix + "/" + self.uid
         self.executable = self.exec_dir + "/" + self.benchmark
 
     def compile(self):
         """Compile the benchmark given the options"""
 
-        os.system("mkdir -p "+ self.exec_dir + " 2> /dev/null")
+        os.system("mkdir -p "+ self.exec_dir)
         os.system("rm "+self.executable + " 2> /dev/null");
 
-        cmdline =  Test.compiler + " -O1 "
+        cmdline =  platforms[self.platform] + " -O1 "
         cmdline += self.negate_flags + " "                              # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
         cmdline += " -o " + self.executable                             # Output compiled file
-        cmdline += " -Wa,-aln="+self.
-        cmdline += " " + benchmark_cmdline[self.benchmark]              # Benchmark individual flags
+        cmdline += " -Wa,-aln="+self.exec_dir+"/output.s"
+        cmdline += " " + benchmarks[self.benchmark]              # Benchmark individual flags
 
         # Store some data for later use
         f = open(self.exec_dir + "/cmdline", "w")
