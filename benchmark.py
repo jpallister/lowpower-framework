@@ -26,7 +26,7 @@ benchmarks = {
 class Option(object):
     TrueFalse = 1   # True or false option of the form
 
-    def __init__(self, flag, ftype, description="", prerequisites=None, implied=None, grouping=None):
+    def __init__(self, flag, ftype, description="", prerequisites=None, implied=None, grouping=('','','','','')):
         """ Initialise the option, given the values.
 
             The flag's pattern is checked and its inverse automatically derived.
@@ -51,6 +51,14 @@ class Option(object):
 
             self.flag = {True: flag, False: '-fno-' + m.group(1)}
 
+        group_map = {'Enabled':True, 'Disabled':False, '': None}
+
+        self.group = {'O0': group_map[grouping[0]],
+                      'O1': group_map[grouping[1]],
+                      'O2': group_map[grouping[2]],
+                      'O3': group_map[grouping[3]],
+                      'Os': group_map[grouping[4]]}
+
     def setValue(self, value):
         if self.ftype == Option.TrueFalse:
             self.value = bool(value)
@@ -60,6 +68,18 @@ class Option(object):
             return self.flag[self.value]
         return None
 
+    def isEnabledForGroup(self, group):
+        return self.group[group] == True
+
+    def isDisabledForGroup(self, group):
+        return self.group[group] == False
+
+    def setGroup(self, group):
+        if self.group[group] == True:
+            self.value = True
+        if self.group[group] == False:
+            self.value = False
+
 
 class Test(object):
     """ Hold the information relating to a test and necessary to run it.
@@ -67,13 +87,14 @@ class Test(object):
 
     compiler = "~/x86_toolchain/bin/gcc"
 
-    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix, group=""):
         self.flags = flags
         self.negate_flags = negate_flags
         self.benchmark = benchmark
         self.uid = uid
         self.repetitions = repetitions
         self.platform=platform
+        self.group = group
 
         self.exec_dir = working_prefix + "/" + self.uid
         self.executable = self.exec_dir + "/" + self.benchmark
@@ -84,8 +105,9 @@ class Test(object):
         os.system("mkdir -p "+ self.exec_dir)
         os.system("rm "+self.executable + " 2> /dev/null");
 
-        cmdline =  platforms[self.platform] + " -O1 "
-        cmdline += self.negate_flags + " "                              # Add negative flags
+        cmdline =  platforms[self.platform]
+        cmdline += " -" + self.group
+        cmdline += " " + self.negate_flags + " "                        # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
         cmdline += " -o " + self.executable                             # Output compiled file
         cmdline += " -Wa,-aln="+self.exec_dir+"/output.s"
@@ -156,6 +178,8 @@ class TestManager(object):
         self.useSubset = False
         self.options = []
         self.repetitions = repetitions
+        self.working_prefix = working_prefix
+        self.group = "-O1"                          # Default, as needed to turn optimizations on
 
         if options is not None:
             self.options = copy.copy(options)
@@ -171,11 +195,13 @@ class TestManager(object):
                     Conforming?,Description,Prerequisites,Implies
 
             Flag        The actual value passed on the command line
-            Grouping    O0, O1, O2, O3 or empty. If this is O0 the flag is enabled
-                            by default. If empty then this flag is not enabled by any
-                            grouping
-            Os          Whether this flag appears in the -Os group. This can be enabled or
-                            disabled. If disabled, this flag is explicity turned off by -Os
+            O0          Whether the flag is enabled or disabled for the O0 group. The value
+                            is 'Enabled' if this flag is explicity turned on, 'Disabled' if
+                            explicitly turned off. Blank if not altered.
+            O1          As above but for O1
+            O2          As above but for O2
+            O3          As above but for O3
+            Os          As above but for Os
             values      If the flag is not a simple true or false, what values can it take.
                             Currently this parameter is not well defined, so options with it
                             non zero are ignored.
@@ -190,16 +216,15 @@ class TestManager(object):
 
         for opt in of:
             flag = opt[0]
-            grouping = opt[1]
-            values = opt[3]
-            default = opt[4]
-            desc = opt[6]
-            pre = opt[7]
-            implied = opt[8]
+            grouping = opt[1], opt[2], opt[3], opt[4], opt[5]
+            values = opt[6]
+            default = opt[7]
+            desc = opt[9]
+            pre = opt[10]
+            implied = opt[11]
 
             if values == "":
-                self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied))
-                print "Adding option", flag
+                self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied, grouping=grouping))
 
     def createID(self, local_options):
         """Create a hexidecimal ID based on which options are on"""
@@ -216,6 +241,13 @@ class TestManager(object):
                 self.options_subset.append(opt)
             else:
                 self.options_notset.append(opt)
+
+    def setGroup(self, group):
+        """Set which optimization group should be used to set the options"""
+        for opt in self.options:
+            opt.setGroup(group)
+        if group != 'O0':
+            self.group = group
 
 
     def createTest(self, values, benchmark="dhrystone"):
@@ -241,7 +273,7 @@ class TestManager(object):
         else:
             negated = ""
 
-        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix)
+        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group)
 
         return t
 
