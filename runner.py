@@ -1,6 +1,5 @@
 import rfoo
 import rfoo.marsh
-from comms.energy_server import Measurement
 from logging import info
 from time import sleep
 import pickle

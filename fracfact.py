@@ -45,6 +45,7 @@ class FactorialMatrix(object):
         if n_factors is None:
             n_factors = self.n_factors
 
+        self.results = []
         self.header = map(chr, range(65, 65+n_factors))
 
         for f in range(n_factors):
@@ -134,10 +135,12 @@ class FactorialMatrix(object):
 
         self.header = map(chr, range(65, 65+self.n_factors))
         self.matrix = list(perm_unique(r))
+        self.results = []
 
-    def addCombination(self, combination):
-        if combination not in self.matrix:
-            self.matrix.append(combination)
+    def addCombination(self, combination):        
+        c = map(lambda x: {True:1, False:-1, 1:1, -1:-1}[x], combination)
+        if c not in self.matrix:
+            self.matrix.append(c)
 
     def display(self):
         for h in self.header:
