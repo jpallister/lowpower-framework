@@ -142,6 +142,10 @@ class FactorialMatrix(object):
         if c not in self.matrix:
             self.matrix.append(c)
 
+    def appendMatrix(self, mat):
+        for c in mat.matrix:
+            self.addCombination(c)
+
     def display(self):
         for h in self.header:
             print "{0: >{1}}".format(h, max([len(h),2])),
