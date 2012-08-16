@@ -8,7 +8,7 @@ import csv
 # Define command line options for different platforms and benchmarks
 compiler_prefix = "/home/james"
 framework_prefix = "/home/james/University/summer12/lowpower-framework"
-benchmark_prefix = "/home/james/University/summer12/lowpower-framework"
+benchmark_prefix = "/home/james/University/summer12/lowpower-framework/benchmarks"
 default_working_prefix = "/home/james/University/summer12/lowpower-framework/testing"
 
 platforms = {
@@ -18,8 +18,13 @@ platforms = {
 }
 
 benchmarks = {
-    "basicmath" : "{bprefix}/basicmath/basicmath_large.c {bprefix}/basicmath/rad2deg.c {bprefix}/basicmath/cubic.c {bprefix}/basicmath/isqrt.c -lm".format(bprefix=benchmark_prefix),
     "dhrystone" : "{bprefix}/dhrystone/dhry_1.c {bprefix}/dhrystone/dhry_2.c".format(bprefix=benchmark_prefix),
+    "2dfir"     : "{bprefix}/2dfir/fir2dim.c".format(bprefix=benchmark_prefix),
+    "crc32"     : "{bprefix}/crc32/crc_32.c".format(bprefix=benchmark_prefix),
+    "cubic"     : "{bprefix}/cubic/basicmath_small.c {bprefix}/cubic/cubic.c -lm".format(bprefix=benchmark_prefix),
+    "blowfish"  : "{bprefix}/blowfish/bf.c {bprefix}/blowfish/bf_cfb64.c {bprefix}/blowfish/bf_skey.c {bprefix}/blowfish/bf_enc.c".format(bprefix=benchmark_prefix),
+    "dijkstra"  : "{bprefix}/dijkstra/dijkstra_small.c".format(bprefix=benchmark_prefix),
+    "fdct"      : "{bprefix}/fdct/fdct.c".format(bprefix=benchmark_prefix),
 }
 
 
@@ -85,9 +90,7 @@ class Test(object):
     """ Hold the information relating to a test and necessary to run it.
     """
 
-    compiler = "~/x86_toolchain/bin/gcc"
-
-    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix, group=""):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix, group="", compile_only=False):
         self.flags = flags
         self.negate_flags = negate_flags
         self.benchmark = benchmark
@@ -95,12 +98,17 @@ class Test(object):
         self.repetitions = repetitions
         self.platform=platform
         self.group = group
+        self.compile_only = compile_only
 
         self.exec_dir = working_prefix + "/" + self.uid
         self.executable = self.exec_dir + "/" + self.benchmark
 
     def compile(self):
         """Compile the benchmark given the options"""
+
+        # Test if the executable exists, if not only compiling
+        if not self.compile_only and os.path.exists(self.executable):
+            return
 
         os.system("mkdir -p "+ self.exec_dir)
         os.system("rm "+self.executable + " 2> /dev/null");
@@ -109,6 +117,7 @@ class Test(object):
         cmdline += " -" + self.group
         cmdline += " " + self.negate_flags + " "                        # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
+        cmdline += " -Wall -Wextra"                                     # Warning flags
         cmdline += " -o " + self.executable                             # Output compiled file
         cmdline += " -Wa,-aln="+self.exec_dir+"/output.s"
         cmdline += " " + benchmarks[self.benchmark]              # Benchmark individual flags
@@ -125,30 +134,38 @@ class Test(object):
         # Run the compilation
         os.system(cmdline + " 2> " + self.exec_dir+"/compile.log")    # Compile
 
-    def run(self):
+    def run(self, runner):
         """Run the compiled benchmark"""
+
+        if self.compile_only:
+            return
 
         self.times = []
 
         for i in range(self.repetitions):
-            p = subprocess.Popen("time " + self.executable, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            output = p.communicate()[0]
+            # p = subprocess.Popen("time " + self.executable, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            # output = p.communicate()[0]
 
-            m = re.match(r'(\d+\.\d+)user', output)
-            if m == None:
-                print output
-                raise Error()
+            # m = re.match(r'(\d+\.\d+)user', output)
+            # if m == None:
+            #     print output
+            #     raise Error()
 
-            self.times.append(float(m.group(1)))
+            # self.times.append(float(m.group(1)))
+
+            self.times.append(runner.run(self.executable))
 
         f = open(self.exec_dir + "/results", "a")
-        for r in self.times:
-            f.write(str(r)+"\n")
+        for t in self.times:
+            for bus, pwr, cur, sht, ts in t:
+                f.write("{} {} {} {} {}\n".format(bus, pwr, cur, sht, ts))
+            f.write("\n")
         f.close()
 
     def loadResults(self):
         """Load the results from the saved file"""
 
+        print self.exec_dir
         f = open(self.exec_dir + "/results", "r")
         self.times = map(float, f.readlines())
 
@@ -163,8 +180,19 @@ class Test(object):
 
 
     def getResult(self):
-        """Return the average result for the test"""
-        return sum(self.times)/len(self.times)
+        """Return the total energy result for the test"""
+        if self.compile_only:
+            return 0
+        val = 0
+        n = 0
+        for rset in self.times:
+            energy = 0
+            for i in range(len(rset)-1):
+                energy += rset[i][1] * (rset[i+1][4]-rset[i][4])
+            val += energy
+            n += 1
+
+        return val / n
 
 
 class TestManager(object):
@@ -174,18 +202,20 @@ class TestManager(object):
     options to be negated, removing their impact on the test.
     """
 
-    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix):
+    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix, benchmark="dhrystone"):
         self.useSubset = False
         self.options = []
         self.repetitions = repetitions
         self.working_prefix = working_prefix
-        self.group = "-O1"                          # Default, as needed to turn optimizations on
+        self.group = "O1"                          # Default, as needed to turn optimizations on
+        self.benchmark=benchmark
 
         if options is not None:
             self.options = copy.copy(options)
 
         if optionsfile is not None:
             self.loadOptions(optionsfile)
+
 
     def loadOptions(self, optionsfile):
         """Load options from a CSV file.
@@ -250,7 +280,7 @@ class TestManager(object):
             self.group = group
 
 
-    def createTest(self, values, benchmark="dhrystone"):
+    def createTest(self, values):
         """Create a test
 
             Values      A list of true or false values
@@ -273,7 +303,7 @@ class TestManager(object):
         else:
             negated = ""
 
-        t = Test(benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group)
+        t = Test(self.benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group)
 
         return t
 
