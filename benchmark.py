@@ -202,13 +202,14 @@ class TestManager(object):
     options to be negated, removing their impact on the test.
     """
 
-    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix, benchmark="dhrystone"):
+    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix, benchmark="dhrystone", compile_only=False):
         self.useSubset = False
         self.options = []
         self.repetitions = repetitions
         self.working_prefix = working_prefix
         self.group = "O1"                          # Default, as needed to turn optimizations on
         self.benchmark=benchmark
+        self.compile_only = compile_only
 
         if options is not None:
             self.options = copy.copy(options)
@@ -303,7 +304,7 @@ class TestManager(object):
         else:
             negated = ""
 
-        t = Test(self.benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group)
+        t = Test(self.benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group, compile_only=self.compile_only)
 
         return t
 
