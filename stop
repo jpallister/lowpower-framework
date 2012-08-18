@@ -1,0 +1,10 @@
+#!/bin/bash
+
+killall -9 arm-none-eabi-gdb
+# killall mips-elf-gdb
+# killall st-util
+# killall ejtagproxy
+# ps -e -o pid,cmd | grep energy_server.py | grep -v grep | awk '{ print $1 }' | xargs kill
+# ps -e -o pid,cmd | grep uart_server.py | grep -v grep | awk '{ print $1 }' | xargs kill
+
+screen -r framework -X quit

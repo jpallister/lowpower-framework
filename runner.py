@@ -1,8 +1,9 @@
 import rfoo
 import rfoo.marsh
-from logging import info
+from logging import info, debug
 from time import sleep
 import pickle
+import os.path
 
 class Runner(object):
     """This class provides an interface to gdb, for starting and stopping
@@ -15,10 +16,16 @@ class Runner(object):
         c = self.getConnection()
         energy_server = rfoo.InetConnection().connect(port=40000)
 
+        executable_path = os.path.abspath(executable_path)
+
         info("Loading '{}' on '{}'".format(executable_path, self.platform))
-        rfoo.Proxy(c).execute("load " + executable_path)
+        rfoo.Proxy(c).execute("file " + executable_path)
+        rfoo.Proxy(c).execute("load")
         rfoo.Proxy(energy_server).clearNewMeasurementCount(self.platform)
         info("Running the benchmark")
+        rfoo.Proxy(c).execute("set height 0")
+        rfoo.Proxy(c).execute("set pagination off")
+        rfoo.Proxy(c).execute("break *&exit")
         rfoo.Proxy(c).execute("cont")
         info("Entering polling loop, waiting for benchmark to complete")
 
@@ -27,7 +34,7 @@ class Runner(object):
 
         info("Result has become available")
         self.m = rfoo.Proxy(energy_server).getLastTrace(self.platform)
-        info("Result {}".format(self.m))
+        debug("Result {}".format(self.m))
         rfoo.Proxy(energy_server).clearNewMeasurementCount(self.platform)
 
         return self.m
