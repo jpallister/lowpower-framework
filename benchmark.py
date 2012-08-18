@@ -13,8 +13,8 @@ default_working_prefix = "/home/james/University/summer12/lowpower-framework/tes
 
 platforms = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f5.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32f05_flash.ld -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f5.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
 
 benchmarks = {
