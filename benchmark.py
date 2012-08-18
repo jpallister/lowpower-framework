@@ -167,32 +167,53 @@ class Test(object):
 
         print self.exec_dir
         f = open(self.exec_dir + "/results", "r")
-        self.times = map(float, f.readlines())
 
-    def loadOrRun(self):
+        self.times = []
+        cur = []
+        for l in f.readlines():
+            if l.strip() == "":
+                self.times.append(cur)
+                cur = []
+            else:
+                cur.append(map(lambda x: int(x.strip()), l.split()))
+
+    def loadOrRun(self, runner):
         """Try to load the results, but if they cannot be found, run the test"""
 
         try:
             self.loadResults()
         except IOError:
             self.compile()
-            self.run()
+            self.run(runner)
 
 
     def getResult(self):
         """Return the total energy result for the test"""
         if self.compile_only:
             return 0
-        val = 0
+        vals = []
+        ts = []
         n = 0
         for rset in self.times:
             energy = 0
+            time = 0
             for i in range(len(rset)-1):
-                energy += rset[i][1] * (rset[i+1][4]-rset[i][4])
-            val += energy
+                if rset[i+1][4] < rset[i][4]:   # wrapped around
+                    t = rset[i+1][4]-rset[i][4] + 2**32
+                else:
+                    t = rset[i+1][4]-rset[i][4]
+
+                # print t, rset[i][1]
+
+                time += t
+                energy += rset[i][1] * t
+
+            ts.append(time)
+            vals.append(energy)
             n += 1
 
-        return val / n
+        print vals, n
+        return (sum(vals) / n, sum(ts) / n)
 
 
 class TestManager(object):
@@ -202,7 +223,7 @@ class TestManager(object):
     options to be negated, removing their impact on the test.
     """
 
-    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix, benchmark="dhrystone", compile_only=False):
+    def __init__(self, options=None, optionsfile=None, repetitions=3, working_prefix=default_working_prefix, benchmark="dhrystone", compile_only=False, platform="x86"):
         self.useSubset = False
         self.options = []
         self.repetitions = repetitions
@@ -210,6 +231,7 @@ class TestManager(object):
         self.group = "O1"                          # Default, as needed to turn optimizations on
         self.benchmark=benchmark
         self.compile_only = compile_only
+        self.platform = platform
 
         if options is not None:
             self.options = copy.copy(options)
@@ -304,7 +326,10 @@ class TestManager(object):
         else:
             negated = ""
 
-        t = Test(self.benchmark, flags, self.createID(local_options), repetitions=self.repetitions, negate_flags=negated, working_prefix=self.working_prefix, group=self.group, compile_only=self.compile_only)
+        t = Test(self.benchmark, flags, self.createID(local_options),
+            repetitions=self.repetitions, negate_flags=negated,
+            working_prefix=self.working_prefix, group=self.group,
+            compile_only=self.compile_only, platform=self.platform)
 
         return t
 

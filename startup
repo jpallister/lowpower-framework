@@ -1,0 +1,29 @@
+#!/bin/bash
+
+STLINK=/home/james/University/summer12/stlink/st-util
+EJTAGPROXY=/home/james/University/summer12/ejtagproxy/ejtagproxy
+EGDBSERVER=/opt/adapteva/esdk/tools/host/x86_64/bin/e-server
+
+GDB_FILES=/home/james/University/summer12/compilers/gdbs
+FRAMEWORK=/home/james/University/summer12/framework
+
+
+screen -S framework -d -m bash
+
+echo Starting STLINK
+screen -r framework -X screen bash -i -c "while true; do $STLINK -p 4200; done"
+sleep 1
+echo Starting gdbhost for cortex-m0
+screen -r framework -X screen bash -i -c "$GDB_FILES/arm-none-eabi-gdb -x $FRAMEWORK/gdbhost_cortex-m0.py"
+sleep 1
+
+echo Starting energy server
+screen -r framework -X screen python $FRAMEWORK/comms/energy_server.py -v
+sleep 1
+echo Starting UART server
+screen -r framework -X screen python $FRAMEWORK/comms/uart_server.py
+sleep 1
+
+echo Starting XC-1A energy monitor
+xrun $FRAMEWORK/board_controller/power/app_power/bin/app_power.xe
+echo Started
