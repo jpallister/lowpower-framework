@@ -41,14 +41,15 @@ void initialise_trigger()
 
     GPIOC_MODER = 0x01;     // Set GPIOC pin 1 to output
     GPIOC_BSRR = 0x00010000;// Clear bit so pin is pulled low
+    GPIOC_BSRR = 0x00000001;// Pull bit high
 }
 
 void start_trigger()
 {
-    GPIOC_BSRR = 0x00000001;// Pull bit high
+    GPIOC_BSRR = 0x00010000;// bit low
 }
 
 void stop_trigger()
 {
-    GPIOC_BSRR = 0x00010000;// bit low
+    GPIOC_BSRR = 0x00000001;// Pull bit high
 }
