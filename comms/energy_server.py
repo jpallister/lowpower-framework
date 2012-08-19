@@ -24,6 +24,8 @@ class Measurement(object):
 
 platforms = {}
 new_measurements = collections.defaultdict(int)
+measurement_history = []
+last_measurement = {}
 
 class EnergyHandler(rfoo.BaseHandler):
     def __init__(self, a1, a2):
@@ -37,15 +39,17 @@ class EnergyHandler(rfoo.BaseHandler):
         platforms[platform].addValues(bus, power, current, shunt, timestamp)
 
     def closeTrace(self, platform):
-        measurement_history.append(platforms[platform])
+#        measurement_history.append(platforms[platform])
+        last_measurement[platform] = platforms[platform]
         new_measurements[platform] += 1
         info("Closing trace for {} (new count {})".format(platform, new_measurements[platform]))
 
     def getLastTrace(self, platform):
         info("getLastTrace for {}".format(platform))
-        for m in measurement_history[::-1]:
-            if m.platform == platform:
-                return m.trace
+        return last_measurement[platform].trace
+#        for m in measurement_history[::-1]:
+ #           if m.platform == platform:
+  #              return m.trace
         warning("No trace found for {}".format(platform))
 
     def getNewMeasurementCount(self, platform):
@@ -65,5 +69,4 @@ if __name__ == "__main__":
 
     print "Starting energy_server now"
 
-    measurement_history = []
     rfoo.InetServer(EnergyHandler).start(port=40000)
