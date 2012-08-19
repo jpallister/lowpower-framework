@@ -11,9 +11,14 @@ class GdbHandler(rfoo.BaseHandler):
     def __init__(self, a1, a2):
         super(GdbHandler, self).__init__(a1, a2)
         gdb.execute("tar ext :"+str(target_port))
+        gdb.execute("set height 0")
+        gdb.execute("set pagination off")
+        gdb.execute("set confirm off")
 
     def execute(self, command):
         s =  gdb.execute(command, to_string=True)
+        print "Execute", command
+        print s
         return s
 
 def handler(signum, frame):
