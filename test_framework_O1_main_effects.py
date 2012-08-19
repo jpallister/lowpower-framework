@@ -59,7 +59,7 @@ flags = ["-fauto-inc-dec", "-fcombine-stack-adjustments",
         "-ftree-sra", "-ftree-ter"]
 
 tm.useOptionSubset(flags)
-run_interface = runner.Runner(arguments["platform"])
+run_interface = runner.Runner(arguments["PLATFORM"])
 
 m2 = fracfact.FactorialMatrix(len(flags))
 m2.fractionFactorial(10)
