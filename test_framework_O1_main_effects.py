@@ -61,8 +61,8 @@ flags = ["-fauto-inc-dec", "-fcombine-stack-adjustments",
 tm.useOptionSubset(flags)
 run_interface = runner.Runner(arguments["PLATFORM"])
 
-m2 = fracfact.FactorialMatrix(len(flags))
-m2.fractionFactorial(10)
+m = fracfact.FactorialMatrix(len(flags))
+m.fractionFactorial(10)
 
 m.addCombination([True for f in flags])
 m.addCombination([False for f in flags])
