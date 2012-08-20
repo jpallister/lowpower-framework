@@ -10,6 +10,6 @@ void initialise_trigger();
 void stop_trigger();
 void start_trigger();
 
-int rand_r();
+int jrand();
 
 #endif /* __PLATFORMCODE_H__ */
