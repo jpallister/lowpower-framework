@@ -38,9 +38,9 @@ on stdcore[3]: port sdaA_X3B = XS1_PORT_1E;
 on stdcore[3]: port sclA_X3B = XS1_PORT_1F;
 on stdcore[3]: port triggerA_X3B = XS1_PORT_4C;
 
-on stdcore[1]: port sdaA_X1A = XS1_PORT_1A;
-on stdcore[1]: port sclA_X1A = XS1_PORT_1B;
-on stdcore[1]: port triggerA_X1A = XS1_PORT_4A;
+on stdcore[3]: port sdaB_X3B = XS1_PORT_1G;
+on stdcore[3]: port sclB_X3B = XS1_PORT_1H;
+on stdcore[3]: port triggerB_X3B = XS1_PORT_4D;
 
 // on stdcore[2]: out port sdaBB = XS1_PORT_1G;
 // on stdcore[2]: out port sclBB = XS1_PORT_1H;
@@ -309,6 +309,7 @@ int main()
         // }
        // on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[1], IIC_ADDRESS_ADC_A, 400000, 50);
        on stdcore[3]: test_ina(sdaA_X3B, sclA_X3B, triggerA_X3B, sends[0], IIC_ADDRESS_ADC_A, 40000, 5000);
+       on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000);
        // on stdcore[2]: test_ina(sdaAB, sclAB, triggerAB, sends[1], IIC_ADDRESS_ADC_B, 40000, 1000);
        // on stdcore[2]: test_ina(sdaCA, sclCA, triggerCA, sends[2], IIC_ADDRESS_ADC_A, 40000, 5000);
        // on stdcore[2]: test_ina(sdaCB, sclCB, triggerCB, sends[3], IIC_ADDRESS_ADC_B, 40000, 5000);

@@ -26,7 +26,7 @@ ser.close()
 ser.open()
 ser.isOpen()
 
-platforms = ["cortex-m0"]
+platforms = ["cortex-m0", "cortex-m3"]
 
 while True:
     while ser.inWaiting() == 0: pass
