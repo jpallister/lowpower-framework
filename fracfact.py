@@ -91,10 +91,11 @@ class FactorialMatrix(object):
 
         return best_dist
 
-    def hamming(self, bits, dist):
-        p = subprocess.Popen("./hamming {0} {1}".format(int(bits),int(dist)), shell=True, stdout=subprocess.PIPE)
-        lines = p.communicate()[0].split("\n")[2:-1]
-        return map(lambda x: int(x, 16), lines)
+    def hamming(self, bits, dist, mhw):
+        p = subprocess.Popen("./superhamming {0} {1} {2}".format(int(bits),int(dist),int(mhw)), shell=True, stdout=subprocess.PIPE)
+        lines = p.communicate()[0].strip().split("\n")
+        words = map(lambda x: int(x,2), lines)
+        return words
 
 
     # From the total factors and the max runs wanted, return best the possible resolution
@@ -105,21 +106,23 @@ class FactorialMatrix(object):
         best_dist = 0
         fwords = []
 
-        for i in range(self.n_factors):
-            words = self.hamming(unique_factors, i)
+        for i in range(2, self.n_factors):
+            words = self.hamming(unique_factors, (i+1) // 2, i - 1)
             if len(words) < self.n_factors - unique_factors:
                 break
             best_dist = i
             fwords = words
+        # print fwords
 
         cols = map(chr, range(65, 65+int(unique_factors)))
 
-        for w in fwords:
+        for w in fwords[::-1]:
             if len(cols) >= self.n_factors:
                 break
 
             r = []
             bstr = "{1:0>{0}}".format(int(unique_factors), bin(w)[2:])
+            # print bstr
             for i, v in enumerate(bstr):
                 if v == '1':
                     r.append(chr(i+65))
@@ -137,7 +140,7 @@ class FactorialMatrix(object):
         self.matrix = list(perm_unique(r))
         self.results = []
 
-    def addCombination(self, combination):        
+    def addCombination(self, combination):
         c = map(lambda x: {True:1, False:-1, 1:1, -1:-1}[x], combination)
         if c not in self.matrix:
             self.matrix.append(c)
@@ -174,7 +177,7 @@ class FactorialMatrix(object):
     def getFactor(self, factor):
         try:
             intf = int(factor)
-            fname = header[intf]
+            fname = self.header[intf]
         except ValueError:
             fname = factor
         except TypeError:
@@ -199,8 +202,15 @@ class FactorialMatrix(object):
 
         return v_on/n_on - v_off/n_off;
 
-    def getConfounding(self, factor):
-        pass
+    def getGenerators(self):
+        generators = []
+
+        for i, eh in enumerate(self.header):
+            if len(eh) > 1:
+                g = map(lambda x: ord(x) - 65, eh) + [i]
+                generators.append(g)
+
+        return generators
 
     def getTrueFalse(self):
         tfm = []
@@ -232,10 +242,14 @@ if __name__ == "__main__":
     print "\tThe best separation of code words is", best_dist, "\n"
 
     print "Extending the earlier matrix to 8 factors with these columns gives:"
-    m2.fractionFactorial(4, header)
+    m2.fractionFactorial(4)
     m2.display()
+
+    # for i, eh in enumerate(header):
+    i = 0
+
+    print "Generators for this design:", m2.getGenerators()
 
     m3 = FactorialMatrix(12)
     m3.combinationFactorial(2)
-    m3.display()
-
+    # m3.display()
