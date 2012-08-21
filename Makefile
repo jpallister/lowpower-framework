@@ -1,3 +1,3 @@
 
 all:
-	gcc -O3 -o hamming hamming.c
+	gcc -std=c99 -O3 -o superhamming superhamming.c
