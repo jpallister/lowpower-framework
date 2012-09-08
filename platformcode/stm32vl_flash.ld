@@ -23,6 +23,7 @@ SECTIONS
         *(.bss*)       /* Zero-filled run time allocate data memory */
 	__bss_end__ = .;
     __bss_end = .;
+    end = .;
     _end = .;
     __end = .;
     } >ram
@@ -35,10 +36,10 @@ SECTIONS
         __data_end__ = .;
         __data_end = .;
     } >ram
+
     . = ALIGN(256);
 
     _start_heap = .;
-    PROVIDE(_start_heap = .);
     PROVIDE( __cs3_heap_start = _start_heap);
 }
 

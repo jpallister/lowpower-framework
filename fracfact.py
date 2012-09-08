@@ -1,6 +1,7 @@
 import itertools
 import subprocess
 import math
+import re
 
 from itertools import permutations
 
@@ -38,6 +39,13 @@ class FactorialMatrix(object):
         self.header = None
         self.matrix = [[]]
         self.results = []
+
+    def loadMatrix(self, fname):
+        f = open(fname, "r")
+        self.header = re.split("\s+", f.readline().strip())
+        self.matrix = []
+        for l in f.readlines():
+            self.addCombination(map(int,re.split("\s+", l.strip())))
 
     def fullFactorial(self, n_factors=None):
         mat = [[]]
@@ -107,7 +115,8 @@ class FactorialMatrix(object):
         fwords = []
 
         for i in range(2, self.n_factors):
-            words = self.hamming(unique_factors, (i+1) // 2, i - 1)
+            # words = self.hamming(unique_factors, (i+1) // 2, i - 1)
+            words = self.hamming(unique_factors, i, i - 1)
             if len(words) < self.n_factors - unique_factors:
                 break
             best_dist = i
@@ -177,6 +186,45 @@ class FactorialMatrix(object):
     def getFactor(self, factor):
         try:
             intf = int(factor)
+            fname = [self.header[intf]]
+        except ValueError:
+            fname = factor
+        except TypeError:
+            fname = factor
+
+        n_on = 0
+        v_on = 0
+        n_off = 0
+        v_off = 0
+
+        for row, value in zip(self.matrix, self.results):
+            low = 0
+            for it_h in fname:
+                if row[self.header.index(it_h)] == -1:
+                    low += 1
+
+            if low % 2 == 0:
+                v_on += value
+                n_on += 1
+            else:
+                v_off += value
+                n_off += 1
+
+        if n_on != n_off:
+            print "VAST ERROR"
+
+        return v_on/n_on - v_off/n_off
+
+    def simplifyInteraction(self, interaction):
+        ret = []
+        for i in interaction:
+            if interaction.count(i)%2 == 1:
+                ret.append(i)
+        return ret
+
+    def estimateStandardDeviation(self, factor):
+        try:
+            intf = int(factor)
             fname = self.header[intf]
         except ValueError:
             fname = factor
@@ -200,7 +248,27 @@ class FactorialMatrix(object):
                 v_off += value
                 n_off += 1
 
-        return v_on/n_on - v_off/n_off;
+        on_mean = v_on/n_on
+        off_mean = v_off/n_off
+
+        n_on = 0
+        v_onsq = 0
+        n_off = 0
+        v_offsq = 0
+
+        for row, value in zip(self.matrix, self.results):
+            low = 0
+            for it_h in fname:
+                if row[self.header.index(it_h)] == -1:
+                    low += 1
+            if low % 2 == 0:
+                v_onsq += (value - on_mean)**2.0
+                n_on += 1
+            else:
+                v_offsq += (value - off_mean)**2.0
+                n_off += 1
+
+        return (math.sqrt(v_onsq/n_on), math.sqrt(v_offsq/n_off));
 
     def getGenerators(self):
         generators = []

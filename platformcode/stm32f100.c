@@ -3,7 +3,7 @@
 #define ADDR(x)     (*((unsigned long*)(x)))
 
 #define RCC_BASE        0x40021000
-#define RCC_APB2ENR     ADDR(RCC_BASE + 0x14)
+#define RCC_APB2ENR     ADDR(RCC_BASE + 0x18)
 
 #define GPIOC_BASE      0x40011000
 #define GPIOC_CRL       ADDR(GPIOC_BASE + 0x00)
@@ -12,7 +12,7 @@
 
 void initialise_trigger()
 {
-    RCC_AHBENR |= 1<<4;    // Turn on GPIO C
+    RCC_APB2ENR |= 1<<4;    // Turn on GPIO C
 
 
     GPIOC_CRL = 0x1;

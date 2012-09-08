@@ -7,14 +7,26 @@ import csv
 
 # Define command line options for different platforms and benchmarks
 compiler_prefix = "/home/james"
-framework_prefix = "/home/james/University/summer12/lowpower-framework"
-benchmark_prefix = "/home/james/University/summer12/lowpower-framework/benchmarks"
-default_working_prefix = "/home/james/University/summer12/lowpower-framework/testing"
+framework_prefix = "/home/james/lowpower-framework"
+benchmark_prefix = "/home/james/lowpower-framework/benchmarks"
+default_working_prefix = "/home/james/lowpower-framework/testing"
 
-platforms = {
-    'x86'       : '{cprefix}/x86_toolchain/bin/gcc -I {fprefix}/platformcode/ {fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32f05_flash.ld -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld -I {fprefix}/platformcode/ {fprefix}/platformcode/stm32f5.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+platform_compilers = {
+    'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32f05_flash.ld -I {fprefix}/platformcode/".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld -I {fprefix}/platformcode/ ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -I {fprefix}/platformcode/ -DREPEAT_FACTOR=1048576".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    "mips"      : "{cprefix}/mips_toolchain/bin/mips-elf-gcc -g -T {fprefix}/platformcode/pic32mx_flash.ld -I {fprefix}/platformcode".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    "epiphany"  : "{cprefix}/epiphany_toolchain/bin/epiphany-elf-gcc -g -I {fprefix}/platformcode ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+}
+
+platform_code = {
+    'x86'       : '{fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m3' : "{fprefix}/platformcode/stm32f100.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "{fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/jrand.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    "mips"      : "{fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    "epiphany"  : "{fprefix}/platformcode/stub.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
 
 benchmarks = {
@@ -25,6 +37,10 @@ benchmarks = {
     "blowfish"  : "{bprefix}/blowfish/bf.c {bprefix}/blowfish/bf_cfb64.c {bprefix}/blowfish/bf_skey.c {bprefix}/blowfish/bf_enc.c".format(bprefix=benchmark_prefix),
     "dijkstra"  : "{bprefix}/dijkstra/dijkstra_small.c".format(bprefix=benchmark_prefix),
     "fdct"      : "{bprefix}/fdct/fdct.c".format(bprefix=benchmark_prefix),
+    "rijndael"  : "{bprefix}/rijndael/aes.c {bprefix}/rijndael/aesxam.c".format(bprefix=benchmark_prefix),
+    "int_matmult": "{bprefix}/int_matmult/matmult.c".format(bprefix=benchmark_prefix),
+    "float_matmult": "{bprefix}/float_matmult/matmult.c".format(bprefix=benchmark_prefix),
+    "sha"       : "{bprefix}/sha/sha.c {bprefix}/sha/sha_driver.c".format(bprefix=benchmark_prefix),
 }
 
 
@@ -100,7 +116,7 @@ class Test(object):
         self.group = group
         self.compile_only = compile_only
 
-        self.exec_dir = working_prefix + "/" + self.uid
+        self.exec_dir = os.path.abspath(working_prefix + "/" + self.uid)
         self.executable = self.exec_dir + "/" + self.benchmark
 
     def compile(self):
@@ -111,15 +127,20 @@ class Test(object):
             return
 
         os.system("mkdir -p "+ self.exec_dir)
+
+        cwd = os.getcwd()
+        os.chdir(self.exec_dir)
+
         os.system("rm "+self.executable + " 2> /dev/null");
 
-        cmdline =  platforms[self.platform]
+        cmdline  = " " + platform_compilers[self.platform]
         cmdline += " -" + self.group
         cmdline += " " + self.negate_flags + " "                        # Add negative flags
         cmdline += " ".join(self.flags)                                 # Add flags
         cmdline += " -Wall -Wextra"                                     # Warning flags
         cmdline += " -o " + self.executable                             # Output compiled file
-        cmdline += " -Wa,-aln="+self.exec_dir+"/output.s"
+        cmdline += " -save-temps"
+        cmdline += " " + platform_code[self.platform]
         cmdline += " " + benchmarks[self.benchmark]              # Benchmark individual flags
 
         # Store some data for later use
@@ -129,10 +150,14 @@ class Test(object):
 
         f = open(self.exec_dir + "/flags", "w")
         f.write("\n".join(self.flags) + "\n")
-        f.close
+        f.close()
 
         # Run the compilation
-        os.system(cmdline + " 2> " + self.exec_dir+"/compile.log")    # Compile
+        ret = os.system(cmdline + " 2> " + self.exec_dir+"/compile.log")    # Compile
+        if ret != 0:
+            raise Exception("Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/compile.log")
+
+        os.chdir(cwd)
 
     def run(self, runner):
         """Run the compiled benchmark"""
