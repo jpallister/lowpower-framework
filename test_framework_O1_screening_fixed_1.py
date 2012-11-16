@@ -37,7 +37,7 @@ if __name__ == "__main__":
     if arguments['--optionsfile'] is None:
         arguments['--optionsfile'] = "options-4.7.1.csv"
     if arguments['--resultsdir'] is None:
-        arguments['--resultsdir'] = "testing/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
+        arguments['--resultsdir'] = "testing_f1/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
 
     if arguments['--verbose'] == 1:
         logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.INFO)
@@ -68,14 +68,20 @@ if __name__ == "__main__":
             "-ftree-fre", "-ftree-loop-optimize",
             "-ftree-phiprop", "-ftree-pta",
             "-ftree-reassoc", "-ftree-sink",
-            "-ftree-sra", "-ftree-ter"]
+            "-ftree-sra", "-ftree-ter",
+            "-ffixed-r4"]
+
+    opt = benchmark.Option("-ffixed-r4", benchmark.Option.TrueFalse, description="Dont use r4")
+    opt.flag[False] = ""
+
+    tm.options.append(opt)
 
     tm.useOptionSubset(flags)
     run_interface = runner.Runner(arguments["PLATFORM"])
 
     m = fracfact.FactorialMatrix(len(flags))
     #print m.fractionFactorial(10)
-    m.loadMatrix("37 factors 2048 runs resolution5")
+    m.loadMatrix("38factors 512runs resolution4")
 
     m.addCombination([True for f in flags])
     m.addCombination([False for f in flags])
@@ -91,6 +97,7 @@ if __name__ == "__main__":
         try:
             for i, comb in enumerate(m.getTrueFalse()):
                 test = tm.createTest(comb)
+                print  test.uid
                 test.compile()
                 # test.loadResults()
                 test.loadOrRun(run_interface)

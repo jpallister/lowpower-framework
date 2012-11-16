@@ -4,12 +4,13 @@ import os.path
 import subprocess
 import re
 import csv
+from logging import info, warning
 
 # Define command line options for different platforms and benchmarks
 compiler_prefix = "/home/james"
-framework_prefix = "/home/james/lowpower-framework"
-benchmark_prefix = "/home/james/lowpower-framework/benchmarks"
-default_working_prefix = "/home/james/lowpower-framework/testing"
+framework_prefix = "/home/james/university/summer12/lowpower-framework"
+benchmark_prefix = "/home/james/university/summer12/lowpower-framework/benchmarks"
+default_working_prefix = "/home/james/university/summer12/lowpower-framework/testing"
 
 platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
@@ -79,6 +80,9 @@ class Option(object):
                       'O2': group_map[grouping[2]],
                       'O3': group_map[grouping[3]],
                       'Os': group_map[grouping[4]]}
+        self.group['O4'] = group_map[grouping[3]]
+        if flag == "-flto":
+            self.group['O4'] = True
 
     def setValue(self, value):
         if self.ftype == Option.TrueFalse:
@@ -106,7 +110,7 @@ class Test(object):
     """ Hold the information relating to a test and necessary to run it.
     """
 
-    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix, group="", compile_only=False):
+    def __init__(self, benchmark, flags, uid, repetitions=3, negate_flags="", platform="x86", working_prefix=default_working_prefix, group="", compile_only=False,extra=""):
         self.flags = flags
         self.negate_flags = negate_flags
         self.benchmark = benchmark
@@ -115,8 +119,9 @@ class Test(object):
         self.platform=platform
         self.group = group
         self.compile_only = compile_only
+        self.extra = extra
 
-        self.exec_dir = os.path.abspath(working_prefix + "/" + self.uid)
+        self.exec_dir = working_prefix + "/" + self.uid
         self.executable = self.exec_dir + "/" + self.benchmark
 
     def compile(self):
@@ -131,7 +136,6 @@ class Test(object):
         cwd = os.getcwd()
         os.chdir(self.exec_dir)
 
-        os.system("rm "+self.executable + " 2> /dev/null");
 
         cmdline  = " " + platform_compilers[self.platform]
         cmdline += " -" + self.group
@@ -142,6 +146,14 @@ class Test(object):
         cmdline += " -save-temps"
         cmdline += " " + platform_code[self.platform]
         cmdline += " " + benchmarks[self.benchmark]              # Benchmark individual flags
+
+        # If command lines are the same, and the executable exists, skip
+        if os.path.exists(self.executable) and os.path.exists(self.exec_dir+"/cmdline"):
+            cl = open(self.exec_dir+"/cmdline", "r").read()
+            if cl.strip() == cmdline.strip():
+                return
+
+        os.system("rm "+self.executable + " 2> /dev/null");
 
         # Store some data for later use
         f = open(self.exec_dir + "/cmdline", "w")
@@ -177,30 +189,53 @@ class Test(object):
             #     raise Error()
 
             # self.times.append(float(m.group(1)))
+            m = runner.run(self.executable)
 
-            self.times.append(runner.run(self.executable))
+            info("Got {0} measurements for repetition {1}".format(len(m),i))
 
-        f = open(self.exec_dir + "/results", "a")
-        for t in self.times:
-            for bus, pwr, cur, sht, ts in t:
-                f.write("{} {} {} {} {}\n".format(bus, pwr, cur, sht, ts))
-            f.write("\n")
-        f.close()
+            for j in range(len(m)):
+                if j >= len(self.times):
+                    self.times.append([m[j]])
+                else:
+                    self.times[j].append(m[j])
+
+        for i, m in enumerate(self.times):
+            if i == 0:
+                f = open(self.exec_dir + "/results", "a")
+            else:
+                f = open(self.exec_dir + "/results_" + str(i), "a")
+            for t in m:
+                for bus, pwr, cur, sht, ts in t:
+                    f.write("{} {} {} {} {}\n".format(bus, pwr, cur, sht, ts))
+                f.write("\n")
+            f.close()
 
     def loadResults(self):
         """Load the results from the saved file"""
 
-        print self.exec_dir
-        f = open(self.exec_dir + "/results", "r")
-
+        #print self.exec_dir
         self.times = []
-        cur = []
-        for l in f.readlines():
-            if l.strip() == "":
-                self.times.append(cur)
-                cur = []
+
+        for i in range(5):
+            if i > 0 and not os.path.exists(self.exec_dir + "/results_" + str(i)):
+                break
+            if i == 0:
+                f = open(self.exec_dir + "/results", "r")
             else:
-                cur.append(map(lambda x: int(x.strip()), l.split()))
+                f = open(self.exec_dir + "/results_" + str(i), "r")
+
+            cur = []
+            m = []
+            for l in f.readlines():
+                if l.strip() == "":
+                    m.append(cur)
+                    cur = []
+                else:
+                    cur.append(map(lambda x: int(x.strip()), l.split()))
+            if len(m) == 0:
+                warning("Loaded results of length 0 for test "+self.uid)
+            self.times.append(m)
+
 
     def loadOrRun(self, runner):
         """Try to load the results, but if they cannot be found, run the test"""
@@ -216,29 +251,34 @@ class Test(object):
         """Return the total energy result for the test"""
         if self.compile_only:
             return 0
-        vals = []
-        ts = []
-        n = 0
-        for rset in self.times:
-            energy = 0
-            time = 0
-            for i in range(len(rset)-1):
-                if rset[i+1][4] < rset[i][4]:   # wrapped around
-                    t = rset[i+1][4]-rset[i][4] + 2**32
-                else:
-                    t = rset[i+1][4]-rset[i][4]
 
-                # print t, rset[i][1]
+        measurements = []
+        for m in self.times:
+            vals = []
+            ts = []
+            n = 0
+            for rset in m:
+                energy = 0
+                time = 0
+                for i in range(len(rset)-1):
+                    if rset[i+1][4] < rset[i][4]:   # wrapped around
+                        t = rset[i+1][4]-rset[i][4] + 2**32
+                    else:
+                        t = rset[i+1][4]-rset[i][4]
 
-                time += t
-                energy += rset[i][1] * t
+                    # print t, rset[i][1]
 
-            ts.append(time)
-            vals.append(energy)
-            n += 1
+                    time += t
+                    energy += rset[i][1] * t
 
-        print vals, n
-        return (sum(vals) / n, sum(ts) / n)
+                ts.append(time)
+                vals.append(energy)
+                n += 1
+            measurements.append( (sum(vals)/n, sum(ts)/n) )
+
+        if len(measurements) == 1:
+            return measurements[0]
+        return measurements
 
 
 class TestManager(object):
@@ -257,6 +297,7 @@ class TestManager(object):
         self.benchmark=benchmark
         self.compile_only = compile_only
         self.platform = platform
+        self.extra = ""
 
         if options is not None:
             self.options = copy.copy(options)
@@ -304,6 +345,9 @@ class TestManager(object):
             if values == "":
                 self.options.append(Option(flag, Option.TrueFalse, description=desc, prerequisites=pre, implied=implied, grouping=grouping))
 
+    def addExtra(self, extra):
+        self.extra = extra
+
     def createID(self, local_options):
         """Create a hexidecimal ID based on which options are on"""
         return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x.value)), local_options)), 2), (len(local_options)+3)//4)
@@ -326,6 +370,10 @@ class TestManager(object):
             opt.setGroup(group)
         if group != 'O0':
             self.group = group
+
+    def getDefaultComb(self):
+        c = [opt.value==True for opt in self.options]
+        return c
 
 
     def createTest(self, values):
@@ -354,7 +402,8 @@ class TestManager(object):
         t = Test(self.benchmark, flags, self.createID(local_options),
             repetitions=self.repetitions, negate_flags=negated,
             working_prefix=self.working_prefix, group=self.group,
-            compile_only=self.compile_only, platform=self.platform)
+            compile_only=self.compile_only, platform=self.platform,
+            extra=self.extra)
 
         return t
 

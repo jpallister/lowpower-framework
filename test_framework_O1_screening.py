@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     m = fracfact.FactorialMatrix(len(flags))
     #print m.fractionFactorial(10)
-    m.loadMatrix("37 factors 2048 runs resolution5")
+    m.loadMatrix("37factors 512runs resolution4")
 
     m.addCombination([True for f in flags])
     m.addCombination([False for f in flags])
@@ -91,6 +91,7 @@ if __name__ == "__main__":
         try:
             for i, comb in enumerate(m.getTrueFalse()):
                 test = tm.createTest(comb)
+                print  test.uid
                 test.compile()
                 # test.loadResults()
                 test.loadOrRun(run_interface)

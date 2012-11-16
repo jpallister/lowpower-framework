@@ -1,7 +1,7 @@
 """Test compile options
 
 Usage:
-    test_framework.py [-v | -vv] [options] BENCHMARK PLATFORM
+    test_framework.py [options] BENCHMARK PLATFORM
     test_framework.py -h
 
 Options:
@@ -37,12 +37,10 @@ if __name__ == "__main__":
     if arguments['--optionsfile'] is None:
         arguments['--optionsfile'] = "options-4.7.1.csv"
     if arguments['--resultsdir'] is None:
-        arguments['--resultsdir'] = "testing/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
+        arguments['--resultsdir'] = "testing_O3/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
 
-    if arguments['--verbose'] == 1:
+    if arguments['--verbose']:
         logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.INFO)
-    elif arguments['--verbose']== 2:
-        logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.DEBUG)
     else:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
@@ -51,31 +49,19 @@ if __name__ == "__main__":
 
     ###### Test specific ######
 
-    flags = ["-fauto-inc-dec", "-fcombine-stack-adjustments",
-            "-fcompare-elim", "-fcprop-registers",
-            "-fdce", "-fdefer-pop",
-            "-fdelayed-branch", "-fdse", "-fguess-branch-probability",
-            "-fif-conversion", "-fif-conversion2",
-            "-finline-functions-called-once", "-fipa-profile",
-            "-fipa-pure-const", "-fipa-reference",
-            "-fmerge-constants", "-fmove-loop-invariants",
-            "-fomit-frame-pointer", "-fshrink-wrap",
-            "-fsplit-wide-types", "-ftree-bit-ccp",
-            "-ftree-ccp", "-ftree-ch",
-            "-ftree-copy-prop", "-ftree-copyrename",
-            "-ftree-dce", "-ftree-dominator-opts",
-            "-ftree-dse", "-ftree-forwprop",
-            "-ftree-fre", "-ftree-loop-optimize",
-            "-ftree-phiprop", "-ftree-pta",
-            "-ftree-reassoc", "-ftree-sink",
-            "-ftree-sra", "-ftree-ter"]
+    flags = ["-fgcse-after-reload","-finline-functions",
+        "-fipa-cp-clone","-fpredictive-commoning",
+        "-ftree-loop-distribute-patterns","-ftree-slp-vectorize",
+        "-ftree-vectorize","-funswitch-loops",
+        "-fira-loop-pressure"]
 
     tm.useOptionSubset(flags)
+    tm.setGroup('O3')
     run_interface = runner.Runner(arguments["PLATFORM"])
 
     m = fracfact.FactorialMatrix(len(flags))
     #print m.fractionFactorial(10)
-    m.loadMatrix("37 factors 2048 runs resolution5")
+    m.loadMatrix("9factors 256runs")
 
     m.addCombination([True for f in flags])
     m.addCombination([False for f in flags])
@@ -83,7 +69,7 @@ if __name__ == "__main__":
     if arguments["--compile-only"]:
         import multiprocessing as mp
 
-        pool = mp.Pool(16)
+        pool = mp.Pool(6)
         pool.map(do_compile, m.getTrueFalse())
     else:
         last = time.time()

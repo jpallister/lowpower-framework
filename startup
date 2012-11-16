@@ -1,11 +1,11 @@
 #!/bin/bash
 
-STLINK=/home/james/project/stlink/st-util
+STLINK=/home/james/tools/stlink/st-util
 EJTAGPROXY=/home/james/project/ejtagproxy/ejtagproxy
 EGDBSERVER=/opt/adapteva/esdk/tools/host/x86_64/bin/e-server
 
-GDB_FILES=/home/james/project/compilers/gdbs
-FRAMEWORK=/home/james/project/lowpower-framework
+GDB_FILES=/home/james/university/summer12/compilers/gdbs
+FRAMEWORK=/home/james/university/summer12/lowpower-framework
 
 
 screen -S framework -d -m bash
@@ -31,5 +31,20 @@ screen -r framework -X screen python $FRAMEWORK/comms/uart_server.py
 sleep 1
 
 echo Starting XC-1A energy monitor
-xrun $FRAMEWORK/board_controller/power/app_power/bin/app_power.xe
+sudo -u xc1_user -i xrun $FRAMEWORK/board_controller/power/app_power/bin/app_power.xe
+
+active=`screen -ls | grep a8 | wc -l`
+if [ "$active" == "0" ]; then
+    screen -S a8 -d -m bash
+    echo Starting OpenOCD for cortex-a8
+    screen -r a8 -X screen bash -i -c "sudo openocd -f board/ti_beaglebone.cfg"
+    sleep 1
+
+    echo Starting gdbhost for cortex-a8
+    screen -r a8 -X screen bash -i -c "$GDB_FILES/arm-none-eabi-gdb -x $FRAMEWORK/gdbhost_cortex-a8.py"
+    sleep 1
+else
+    echo Cortex-A8 already active
+fi
+
 echo Started

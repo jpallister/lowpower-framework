@@ -11,6 +11,7 @@ Options:
     -r --resultsdir RESULTDIR   Specify where to save the results
     --compile-only              Do not run, just compile
     --run-only                  Don't compile, just run (error if no executable)
+    --use-truepair              Use the true pair results, default is fractional factorial
     --notify                    Send push notifications on events
 
 """
@@ -31,7 +32,7 @@ arguments = docopt(__doc__)
 if arguments['--optionsfile'] is None:
     arguments['--optionsfile'] = "options-4.7.1.csv"
 if arguments['--resultsdir'] is None:
-    arguments['--resultsdir'] = "testing/{}/{}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
+    arguments['--resultsdir'] = "testing/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
 
 if arguments['--verbose']:
     logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.INFO)
@@ -65,33 +66,43 @@ flags = ["-fauto-inc-dec", "-fcombine-stack-adjustments",
 tm.useOptionSubset(flags)
 run_interface = runner.Runner(arguments["PLATFORM"])
 
-m2 = fracfact.FactorialMatrix(len(flags))
-m2.combinationFactorial(2)
-m = fracfact.FactorialMatrix(len(flags))
-m.combinationFactorial(1)
-m.appendMatrix(m2)
+## Load sequence
+f = open(arguments['--resultsdir'] + "/main_effects_sequence", "r")
+seq = f.readlines()
+f.close()
 
-m.addCombination([True for f in flags])
-m.addCombination([False for f in flags])
+testmat = []
+curidx = []
+
+for s in seq:
+    if s.strip == "":
+        continue
+    curidx.append(flags.index(s.strip()))
+    comb = [False for i in flags]
+    for i in curidx:
+        comb[i] = True
+    testmat.append(comb)
 
 last = time.time()
 
 try:
-    for i, comb in enumerate(m.getTrueFalse()):
+    for i, comb in enumerate(testmat):
         test = tm.createTest(comb)
         test.compile()
         # test.loadResults()
         test.loadOrRun(run_interface)
         r = test.getResult()
-        m.addResult(i, r)
-
+        # m.addResult(i, r)
+    
         dt = datetime.time(datetime.now())
         print "{0:02d} [{1:02d}:{2:02d}:{3:02d}] ".format(int(time.time()-last), dt.hour, dt.minute, dt.second),test.uid, r
         last = time.time()
-except:
+except :
+    #print err
     traceback.print_exc()
     if arguments["--notify"]:
+        print "Sending Notification"
         notify.notify("Exception occured!",traceback.format_exc(1))
-else:
+else:   
     if arguments["--notify"]:
-        notify.notify("Tests complete", "{0} tests completed.\nCommand line: {1}\nBenchmark: {2}\nPlatform: {3}".format(len(m.matrix), " ".join(sys.argv), arguments['BENCHMARK'], arguments['PLATFORM']))
+        notify.notify("Tests complete", "{0} tests completed.\nCommand line: {1}\nBenchmark: {2}\nPlatform: {3}".format(len(testmat), " ".join(sys.argv), arguments['BENCHMARK'], arguments['PLATFORM']))

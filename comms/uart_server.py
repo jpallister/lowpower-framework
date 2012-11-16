@@ -1,32 +1,37 @@
 import rfoo
 import serial
 import glob
+import sys
 
 print "Starting uart_server now"
 
 
 c = rfoo.InetConnection().connect(port=40000)
 
-fs = glob.glob("/dev/ttyUSB*")
-
-if len(fs) > 1:
-    print "There are multiple ttyUSB devices, choose one:"
-    for i, f in enumerate(fs):
-        print "\t[{}] {}".format(i, f)
-    entry = int(raw_input(" ? "))
-    fdev = fs[entry]
+if len(sys.argv) == 2:
+    fdev = sys.argv[1]
 else:
-    fdev = fs[0]
+    fs = glob.glob("/dev/ttyS_cp210x_*")
+
+    if len(fs) > 1:
+        print "There are multiple ttyUSB devices, choose one:"
+        for i, f in enumerate(fs):
+            print "\t[{}] {}".format(i, f)
+        entry = int(raw_input(" ? "))
+        fdev = fs[entry]
+    else:
+        fdev = fs[0]
 
 print "Choosing serial device '{}'".format(fdev)
 
-ser = serial.Serial(port=fdev, baudrate=1152000, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+#ser = serial.Serial(port=fdev, baudrate=1152000, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
+ser = serial.Serial(port=fdev, baudrate=115200*2, parity=serial.PARITY_NONE, stopbits=1, bytesize=8)
 
 ser.close()
 ser.open()
 ser.isOpen()
 
-platforms = ["cortex-m0", "cortex-m3"]
+platforms = ["cortex-m0", "cortex-m3", "cortex-a8", "cortex-a8_ddr", "cortex-a8_core", "epiphany", "epiphany_io", "xmos"]
 
 while True:
     while ser.inWaiting() == 0: pass
@@ -34,19 +39,25 @@ while True:
     if marker1 != 0xAB:
         print "no M1", hex(marker1)
         continue
-    marker2 = ord(ser.read(1))
-    if marker2 != 0xCD:
-        print "no M2"
-        continue
+#    marker2 = ord(ser.read(1))
+#    if marker2 != 0xCD:
+#        print "no M2"
+#        continue
     op = ord(ser.read(1))
     dev = ord(ser.read(1))
     if op == 0x0:
+        if ord(ser.read(1)) != 0xEF:
+            print "Incorrect terminator"
         print "Stop",dev
-        rfoo.Proxy(c).closeTrace(platforms[dev])
+        if dev < len(platforms):
+            rfoo.Proxy(c).closeTrace(platforms[dev])
         continue
     if op == 0x1:
+        if ord(ser.read(1)) != 0xEF:
+            print "Incorrect terminator"
         print "Start",dev
-        rfoo.Proxy(c).startTrace(platforms[dev])
+        if dev < len(platforms):
+            rfoo.Proxy(c).startTrace(platforms[dev])
         continue
 
     if op == 0x2:
@@ -59,7 +70,12 @@ while True:
             v |= ord(ser.read(1))
             vals.append(v)
 
-        print dev, vals
+
+        if ord(ser.read(1)) != 0xEF:
+            print "Incorrect terminator"
+            continue
+
+ #       print dev, vals
         rfoo.Proxy(c).addValues(platforms[dev], *vals)
         continue
 

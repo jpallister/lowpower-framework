@@ -1,8 +1,8 @@
 """Plot main effects from fractional factorial tests
 
 Usage:
-    plot_O1_main_effects.py [options] BENCHMARK PLATFORM
-    plot_O1_main_effects.py -h
+    plot_O2_main_effects.py [options] BENCHMARK PLATFORM
+    plot_O2_main_effects.py -h
 
 Options:
     -h --help                   Show this screen
@@ -23,70 +23,57 @@ matplotlib.use('Agg')
 from pylab import *
 from scipy.stats import norm
 import scipy.stats
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar, AnchoredDrawingArea
-import scalebars
+
 
 arguments = docopt(__doc__)
 
 if arguments['--optionsfile'] is None:
     arguments['--optionsfile'] = "options-4.7.1.csv"
 if arguments['--resultsdir'] is None:
-    arguments['--resultsdir'] = "testing/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
+    arguments['--resultsdir'] = "testing_O2/{0}/{1}".format(arguments['PLATFORM'], arguments['BENCHMARK'])
 
 tm = benchmark.TestManager(optionsfile="options-4.7.1.csv", working_prefix=arguments['--resultsdir'])
 
-flags = ["-fauto-inc-dec", "-fcombine-stack-adjustments",
-        "-fcompare-elim", "-fcprop-registers",
-        "-fdce", "-fdefer-pop",
-        "-fdelayed-branch", "-fdse", "-fguess-branch-probability",
-        "-fif-conversion", "-fif-conversion2",
-        "-finline-functions-called-once", "-fipa-profile",
-        "-fipa-pure-const", "-fipa-reference",
-        "-fmerge-constants", "-fmove-loop-invariants",
-        "-fomit-frame-pointer", "-fshrink-wrap",
-        "-fsplit-wide-types", "-ftree-bit-ccp",
-        "-ftree-ccp", "-ftree-ch",
-        "-ftree-copy-prop", "-ftree-copyrename",
-        "-ftree-dce", "-ftree-dominator-opts",
-        "-ftree-dse", "-ftree-forwprop",
-        "-ftree-fre", "-ftree-loop-optimize",
-        "-ftree-phiprop", "-ftree-pta",
-        "-ftree-reassoc", "-ftree-sink",
-        "-ftree-sra", "-ftree-ter"]
+flags = ["-falign-functions", "-falign-jumps",
+            "-falign-labels", "-falign-loops",
+            "-fcaller-saves", "-fcrossjumping",
+            "-fcse-follow-jumps", "-fcse-skip-blocks",
+            "-fdelete-null-pointer-checks", "-fdevirtualize",
+            "-fexpensive-optimizations", "-fgcse",
+            "-fgcse-lm", "-findirect-inlining",
+            "-finline-small-functions", "-fipa-cp",
+            "-fipa-sra", "-foptimize-sibling-calls",
+            "-fpartial-inlining", "-fpeephole2",
+            "-fregmove", "-freorder-blocks",
+            "-freorder-functions", "-frerun-cse-after-loop",
+            "-fsched-interblock", "-fsched-spec",
+            "-fschedule-insns", "-fschedule-insns2 ",
+            "-fstrict-aliasing", "-fstrict-overflow",
+            "-fthread-jumps", "-ftree-builtin-call-dce",
+            "-ftree-pre", "-ftree-switch-conversion",
+            "-ftree-tail-merge", "-ftree-vrp",]
 
 all_0_val = 0
 all_1_val = 0
 tm.useOptionSubset(flags)
 
-list_sel =2
-
 test = tm.createTest([True for f in flags])
 
 test.loadResults()
-r= test.getResult()
-if type(r) is list:
-    r = r[list_sel]
-all_1_val = r[0]
-all_1_val_time = r[1]
+all_1_val = test.getResult()[0]
+all_1_val_time = test.getResult()[1]
 
 test = tm.createTest([False for f in flags])
 test.loadResults()
-r= test.getResult()
-if type(r) is list:
-    r = r[list_sel]
-all_0_val = r[0]
-all_0_val_time = r[1]
+all_0_val = test.getResult()[0]
+all_0_val_time = test.getResult()[1]
 
-if arguments["--choose-matrix"] is None:
-    m = fracfact.FactorialMatrix(len(flags))
-    m2 = fracfact.FactorialMatrix(len(flags))
-    m.loadMatrix("37 factors 2048 runs resolution5")
-    m2.loadMatrix("37 factors 2048 runs resolution5")
-else:
-    m = fracfact.FactorialMatrix(len(flags))
-    m.loadMatrix(arguments["--choose-matrix"])
-    m2 = fracfact.FactorialMatrix(len(flags))
-    m2.loadMatrix(arguments["--choose-matrix"])
+
+m = fracfact.FactorialMatrix(len(flags))
+m2 = fracfact.FactorialMatrix(len(flags))
+
+m.loadMatrix("36 factors 2048 runs resolution5")
+m2.loadMatrix("36 factors 2048 runs resolution5")
 
 
 comb_mat = m.getTrueFalse()
@@ -97,9 +84,6 @@ for i, comb in enumerate(comb_mat):
     try:
         test.loadResults()
         r = test.getResult()
-
-        if type(r) is list:
-            r = r[list_sel]
     except IOError:
         print "nothing for", test.uid, comb
         continue
@@ -140,7 +124,7 @@ for i, f in enumerate(flags):
 
 results = []
 
-fp = open("main_effects/{}/{}_O1".format(arguments['PLATFORM'],arguments['BENCHMARK']),"w")
+fp = open("main_effects/{}/{}_O2".format(arguments['PLATFORM'],arguments['BENCHMARK']),"w")
 
 for i, f in enumerate(flags):
     r = (m.getFactor(i), f, m2.getFactor(i), plot_sig[i])
@@ -185,8 +169,6 @@ print "Significant hi",significant_hi_start, significant_hi_end
 fig = figure(figsize=(10,8))
 ax1 = fig.add_subplot(111)
 
-ax1.set_xlim([-1,38])
-
 # plot energies
 rects1 = ax1.bar(range(len(rx)), ry, align='center', width=0.4, color='#006600')
 # plot times
@@ -195,6 +177,7 @@ rects2 = ax1.bar(map(lambda x: x + 0.4, range(len(rx))), ryt, align='center', wi
 ax1.legend( (rects1[0], rects2[0]), ('Energy', 'Time') , loc=4)
 
 # Flags as x labels
+ax1.set_xlim([-1,37])
 ax1.set_xticks(range(len(rx)))
 ax1.set_xticklabels(rx)
 ax1.set_ylabel("Percentage time/energy, relative to no optimisations")
@@ -217,19 +200,18 @@ if significant_lo_end - significant_lo_start > 0.5:
 significant_hi_y = -hy/4
 significant_hi_y_text = significant_hi_y - small_offset*2
 significant_hi_x_text = (significant_hi_start+significant_hi_end)/2
-significant_hi_x_text = min([significant_hi_x_text, 35.0])
+significant_hi_x_text = min([significant_hi_x_text, 34.0])
 if significant_hi_end - significant_hi_start > 0.5:
     l = matplotlib.lines.Line2D([significant_hi_start, significant_hi_start, significant_hi_end,significant_hi_end],[significant_hi_y+small_offset,significant_hi_y, significant_hi_y, significant_hi_y+small_offset], color="0",linestyle="-")
     ax1.add_line(l)
     ax1.text(significant_hi_x_text, significant_hi_y_text, 'Significant', horizontalalignment="center", verticalalignment="center")
-
 
 # Sort out spacing
 fig.subplots_adjust(bottom=0.35, left=0.1, right=0.9)
 
 # Titles
 figtext(.5,.96,"Individual flag's effect on energy consumption in GCC (percentage relative to no optimisations)", fontsize=15, ha='center')
-figtext(.5,.93,'{0}, {1}, Flags enabled by O1, fractional factorial design of 2048 runs'.format(arguments['PLATFORM'],arguments['BENCHMARK']), fontsize=12, ha='center')
+figtext(.5,.93,'{0}, {1}, Flags enabled by O2, fractional factorial design of 2048 runs'.format(arguments['PLATFORM'],arguments['BENCHMARK']), fontsize=12, ha='center')
 
 if arguments["--save"] is not None:
     savefig(arguments["--save"])

@@ -36,21 +36,27 @@ class EnergyHandler(rfoo.BaseHandler):
         info("Start trace for {}".format(platform))
 
     def addValues(self, platform, bus, power, current, shunt, timestamp):
+        if platform not in platforms.keys():
+            return
         platforms[platform].addValues(bus, power, current, shunt, timestamp)
 
     def closeTrace(self, platform):
+        if platform not in platforms:
+            return
 #        measurement_history.append(platforms[platform])
         last_measurement[platform] = platforms[platform]
         new_measurements[platform] += 1
         info("Closing trace for {} (new count {})".format(platform, new_measurements[platform]))
 
     def getLastTrace(self, platform):
-        info("getLastTrace for {}".format(platform))
+        if platform not in platforms:
+            warning("No trace found for {}".format(platform))
+            return None
+        #info("getLastTrace for {} {}".format(platform,last_measurement[platform].trace))
         return last_measurement[platform].trace
 #        for m in measurement_history[::-1]:
  #           if m.platform == platform:
   #              return m.trace
-        warning("No trace found for {}".format(platform))
 
     def getNewMeasurementCount(self, platform):
         info("getNewMeasurementCount for {} ({})".format(platform, new_measurements[platform]))
