@@ -11,7 +11,9 @@
 #define IIC_ADDRESS_ADC_B  (0x41 << 1)
 #define IIC_ADDRESS_ADC_A  (0x45 << 1)
 
-#define BIT_RATE 1152000
+//#define BIT_RATE 1152000
+#define BIT_RATE (115200*2)
+//#define BIT_RATE 500000
 #define BIT_TIME XS1_TIMER_HZ / BIT_RATE
 #define BITS_PER_BYTE 8
 #define SET_PARITY 0
@@ -33,7 +35,7 @@ on stdcore[3] : port led3 = PORT_CLOCKLED_3;
 on stdcore[0] : port selg = PORT_CLOCKLED_SELG;
 on stdcore[0] : port selr = PORT_CLOCKLED_SELR;
 
-// B
+// 3B
 on stdcore[3]: port sdaA_X3B = XS1_PORT_1E;
 on stdcore[3]: port sclA_X3B = XS1_PORT_1F;
 on stdcore[3]: port triggerA_X3B = XS1_PORT_4C;
@@ -42,16 +44,48 @@ on stdcore[3]: port sdaB_X3B = XS1_PORT_1G;
 on stdcore[3]: port sclB_X3B = XS1_PORT_1H;
 on stdcore[3]: port triggerB_X3B = XS1_PORT_4D;
 
+// 3A
+on stdcore[3]: port sdaA_X3A = XS1_PORT_1A;
+on stdcore[3]: port sclA_X3A = XS1_PORT_1B;
+on stdcore[3]: port triggerA_X3A = XS1_PORT_4A;
+
+on stdcore[3]: port sdaB_X3A = XS1_PORT_1C;
+on stdcore[3]: port sclB_X3A = XS1_PORT_1D;
+on stdcore[3]: port triggerB_X3A = XS1_PORT_4B;
+
+// 1A
+on stdcore[1]: port sdaA_X1A = XS1_PORT_1A;
+on stdcore[1]: port sclA_X1A = XS1_PORT_1B;
+on stdcore[1]: port triggerA_X1A = XS1_PORT_4A;
+
+on stdcore[1]: port sdaB_X1A = XS1_PORT_1C;
+on stdcore[1]: port sclB_X1A = XS1_PORT_1D;
+on stdcore[1]: port triggerB_X1A = XS1_PORT_4B;
+
+// 2A
+on stdcore[2]: port sdaA_X2A = XS1_PORT_1A;
+on stdcore[2]: port sclA_X2A = XS1_PORT_1B;
+on stdcore[2]: port triggerA_X2A = XS1_PORT_4A;
+
+on stdcore[2]: port sdaB_X2A = XS1_PORT_1C;
+on stdcore[2]: port sclB_X2A = XS1_PORT_1D;
+on stdcore[2]: port triggerB_X2A = XS1_PORT_4B;
+
+// Bottom row
+on stdcore[0]: port sdaA_bottom = XS1_PORT_1A;
+on stdcore[0]: port sclA_bottom = XS1_PORT_1B;
+on stdcore[0]: port triggerA_bottom = XS1_PORT_1C;
+
 // on stdcore[2]: out port sdaBB = XS1_PORT_1G;
 // on stdcore[2]: out port sclBB = XS1_PORT_1H;
 // on stdcore[2]: port triggerBB = XS1_PORT_4D;
 
-
-void test_ina(port sda, port scl, port trigger, chanend send, unsigned int address, unsigned maxuA, unsigned resistor)
+// if interval == -1, wait for trigger
+void test_ina(port sda, port scl, port trigger, chanend send, unsigned int address, unsigned maxuA, unsigned resistor, int pga_range, int interval)
 {
     timer t;
     INA219_t ina219;
-    int pwr, bus, interval, current, shunt;
+    int pwr, bus, current, shunt;
     unsigned cfg, ret, trig, delay, now;
     short power_array[50];
     short current_array[50];
@@ -60,36 +94,35 @@ void test_ina(port sda, port scl, port trigger, chanend send, unsigned int addre
     short timestamp_array[50];
     int n_vals, avg, start;
 
+
     cfg = INA219_CFGB_BUSV_RANGE(INA219_CFG_BUSV_RANGE_16)
-        | INA219_CFGB_PGA_RANGE(INA219_CFG_PGA_RANGE_40)
+        | INA219_CFGB_PGA_RANGE(pga_range)
         | INA219_CFGB_BADC_RES_AVG(INA219_CFG_ADC_RES_12)
         | INA219_CFGB_SADC_RES_AVG(INA219_CFG_ADC_RES_12)
         | INA219_CFGB_OPMODE(INA219_CFG_OPMODE_SCBV_CT);
         //| INA219_CFGB_OPMODE(INA219_CFG_OPMODE_SV_CT);
     ret = ina219_init(ina219, t, scl, sda, address);
     if(ret != XMOS_SUCCESS)
-        printf("Init error");
+        printf("Init error\n");
     ret = ina219_config(ina219, t, scl, sda, cfg);
     if(ret != XMOS_SUCCESS)
-        printf("Config error");
+        printf("Config error\n");
     ret = ina219_auto_calibrate(ina219, t, scl, sda, maxuA, resistor, 1);
-    if(ret != XMOS_SUCCESS)
-        printf("calibrate error");
 
-    interval = 50000;
-    t :> delay;
-    delay += resistor * 10;
-    t when timerafter(delay) :> void;
+
+    trig = 0;
 
      while(1)
      {
-        while(trig&1)
+        if(interval == -1)
         {
-            trigger :> trig;
-            pwr = ina219_power_uW(ina219,t,scl,sda);
+            while(trig&1)
+            {
+                trigger :> trig;
+                pwr = ina219_power_uW(ina219,t,scl,sda);
+            }
+            send <: 1;
         }
-
-        send <: 1;
 
         while(!(trig&1))
         {
@@ -105,16 +138,24 @@ void test_ina(port sda, port scl, port trigger, chanend send, unsigned int addre
             send <: shunt;
             send <: now;
             trigger :> trig;
-            // printf("Bus %dmV, Power %duW, Current %duA, Shunt %duV Trigger: %d\n",bus, pwr, current, shunt, trig&1);
+
+            if(interval != -1)
+            {
+                t when timerafter(now + interval) :> void;
+                trig = 0;
+            }
+
+ //           printf("%dmV %duW %dmA %duV\n", bus, pwr, current, shunt);
         }
-        send <:0;
-        // printf("Trigger finished\n");
+
+        if(interval == -1)
+            send <:0;
     }
     // return;
 
 }
 
-#define CHANS   4
+#define CHANS   8
 
 void printer(chanend r[CHANS])
 {
@@ -214,6 +255,7 @@ void fadecolours(port selg, port selr)
 void txByte (out port TXD, int byte) {
     unsigned time;
     timer t;
+    int p=0;
 
     /* input initial time */
     t :> time;
@@ -225,6 +267,7 @@ void txByte (out port TXD, int byte) {
 
     /* output data bits */
     for (int i=0; i <8; i++) {
+        p ^= (byte&1);
         TXD <: >> byte;
         time += BIT_TIME;
         t when timerafter (time) :> void;
@@ -239,18 +282,17 @@ void txByte (out port TXD, int byte) {
 void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
 {
     timer t;
-    unsigned n;
+    unsigned n, tv;
 
     uartTX <: 1;
 
     while(1)
     {
+        for(int i = 0; i < CHANS; ++i)
         select {
-            case (int i = 0; i < CHANS; ++i)
-                sensors[i] :> n :
+            case sensors[i] :> n :
                 {
                     txByte(uartTX, 0xAB);
-                    txByte(uartTX, 0xCD);
 
                     txByte(uartTX, n);
                     txByte(uartTX, i);
@@ -266,8 +308,11 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
                             txByte(uartTX, (val >> 8) & 0xFF);
                             txByte(uartTX, val & 0xFF);
                         }
+
+                    txByte(uartTX, 0xEF);
                     break;
                 }
+            default: break;
         }
     }
 }
@@ -276,7 +321,7 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
 
 int main()
 {
-    chan sends[4], chanTX, chanRX;
+    chan sends[CHANS], chanTX, chanRX;
     chan flashring[4];
 
     par {
@@ -308,11 +353,31 @@ int main()
 
         // }
        // on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[1], IIC_ADDRESS_ADC_A, 400000, 50);
-       on stdcore[3]: test_ina(sdaA_X3B, sclA_X3B, triggerA_X3B, sends[0], IIC_ADDRESS_ADC_A, 40000, 5000);
-       on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000);
-       // on stdcore[2]: test_ina(sdaAB, sclAB, triggerAB, sends[1], IIC_ADDRESS_ADC_B, 40000, 1000);
-       // on stdcore[2]: test_ina(sdaCA, sclCA, triggerCA, sends[2], IIC_ADDRESS_ADC_A, 40000, 5000);
-       // on stdcore[2]: test_ina(sdaCB, sclCB, triggerCB, sends[3], IIC_ADDRESS_ADC_B, 40000, 5000);
+
+    // Cortex m0 and m3
+      on stdcore[3]: test_ina(sdaA_X3B, sclA_X3B, triggerA_X3B, sends[0], IIC_ADDRESS_ADC_A, 40000, 5000, INA219_CFG_PGA_RANGE_40, -1);
+//      on stdcore[3]: test_ina(sdaA_X3B, sclA_X3B, triggerA_X3B, sends[0], IIC_ADDRESS_ADC_A, 40000, 50, INA219_CFG_PGA_RANGE_40, 100000000);
+      on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_40, -1);
+//      on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_80, 500000);
+
+        // Cortex a8
+        // mpu
+//      on stdcore[3]: test_ina(sdaA_X3A, sclA_X3A, triggerA_X3A, sends[2], IIC_ADDRESS_ADC_A, 400000, 100, INA219_CFG_PGA_RANGE_40, -1);
+//      on stdcore[3]: test_ina(sdaA_X3A, sclA_X3A, triggerA_X3A, sends[2], IIC_ADDRESS_ADC_A, 400000, 100, INA219_CFG_PGA_RANGE_40, 500000);
+        // ddr
+//      on stdcore[2]: test_ina(sdaA_X2A, sclA_X2A, triggerA_X2A, sends[3], IIC_ADDRESS_ADC_A, 400000, 1000, INA219_CFG_PGA_RANGE_160, -1);
+      // on stdcore[2]: test_ina(sdaA_X2A, sclA_X2A, triggerA_X2A, sends[3], IIC_ADDRESS_ADC_A, 400000, 1000, INA219_CFG_PGA_RANGE_160, 500000);
+        // vcore
+//      on stdcore[2]: test_ina(sdaB_X2A, sclB_X2A, triggerB_X2A, sends[4], IIC_ADDRESS_ADC_B, 400000, 1000, INA219_CFG_PGA_RANGE_160, -1);
+      // on stdcore[2]: test_ina(sdaB_X2A, sclB_X2A, triggerB_X2A, sends[4], IIC_ADDRESS_ADC_B, 400000, 1000, INA219_CFG_PGA_RANGE_160, 500000);
+
+        // epiphany
+ //     on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[5], IIC_ADDRESS_ADC_A, 400000, 50, INA219_CFG_PGA_RANGE_40, 500000);
+   //   on stdcore[1]: test_ina(sdaB_X1A, sclB_X1A, triggerB_X1A, sends[6], IIC_ADDRESS_ADC_B, 800000, 50, INA219_CFG_PGA_RANGE_40, 500000);
+
+      // xmos
+//      on stdcore[0]: test_ina(sdaA_bottom, sclA_bottom, triggerA_bottom, sends[7], IIC_ADDRESS_ADC_B, 400000, 50, INA219_CFG_PGA_RANGE_40, -1);
+
 
         // on stdcore[2]: printf("hi1");
         // on stdcore[2]: printf("hi2");

@@ -8,9 +8,9 @@ from logging import info, warning
 
 # Define command line options for different platforms and benchmarks
 compiler_prefix = "/home/james"
-framework_prefix = "/home/james/university/summer12/lowpower-framework"
-benchmark_prefix = "/home/james/university/summer12/lowpower-framework/benchmarks"
-default_working_prefix = "/home/james/university/summer12/lowpower-framework/testing"
+framework_prefix = "/home/james/university/summer12/lowpower-framework-git"
+benchmark_prefix = framework_prefix+"/benchmarks"
+default_working_prefix = framework_prefix+"/testing"
 
 platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
@@ -121,7 +121,7 @@ class Test(object):
         self.compile_only = compile_only
         self.extra = extra
 
-        self.exec_dir = working_prefix + "/" + self.uid
+        self.exec_dir = os.path.abspath(working_prefix + "/" + self.uid)
         self.executable = self.exec_dir + "/" + self.benchmark
 
     def compile(self):

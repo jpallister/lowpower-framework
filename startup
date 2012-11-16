@@ -11,7 +11,7 @@ FRAMEWORK=/home/james/university/summer12/lowpower-framework
 screen -S framework -d -m bash
 
 echo Starting STLINK
-screen -r framework -X screen bash -i -c "while true; do  $STLINK -p 4200 -v0; done"
+screen -r framework -X screen bash -i -c "while true; do  $STLINK -p 4200 -v0 -c 0x0bb11477; done"
 sleep 1
 echo Starting gdbhost for cortex-m0
 screen -r framework -X screen bash -i -c "$GDB_FILES/arm-none-eabi-gdb -x $FRAMEWORK/gdbhost_cortex-m0.py"
