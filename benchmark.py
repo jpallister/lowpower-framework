@@ -4,6 +4,7 @@ import os.path
 import subprocess
 import re
 import csv
+import itertools
 from logging import info, warning
 
 # Define command line options for different platforms and benchmarks
@@ -14,16 +15,22 @@ default_working_prefix = framework_prefix+"/testing"
 
 platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32f05_flash.ld -I {fprefix}/platformcode/".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld -I {fprefix}/platformcode/ ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -static -g -T {fprefix}/platformcode/stm32f05_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -I {fprefix}/platformcode/ -DREPEAT_FACTOR=1048576".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{cprefix}/mips_toolchain/bin/mips-elf-gcc -g -T {fprefix}/platformcode/pic32mx_flash.ld -I {fprefix}/platformcode".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{cprefix}/epiphany_toolchain/bin/epiphany-elf-gcc -g -I {fprefix}/platformcode ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
 
+llc_flags = {
+    'cortex-m0' : "-march=thumb -mcpu=cortex-m0 -mtriple=arm-none-eabi",
+    'cortex-m3' : "-march=thumb -mcpu=cortex-m3 -mtriple=arm-none-eabi",
+    'cortex-m4' : "-march=thumb -mcpu=cortex-m4 -mtriple=arm-none-eabi",
+}
+
 platform_code = {
     'x86'       : '{fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-m0' : "{fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-m0' : "{fprefix}/platformcode/memcpy.c {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{fprefix}/platformcode/stm32f100.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8' : "{fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/jrand.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
@@ -136,28 +143,58 @@ class Test(object):
         cwd = os.getcwd()
         os.chdir(self.exec_dir)
 
+        cmdline_clang  = "clang -g -c -emit-llvm -I {fprefix}/platformcode".format(fprefix=framework_prefix)
+        cmdline_clang += " " + benchmarks[self.benchmark] + " " + platform_code[self.platform]
+        #save cmdline
+        f = open(self.exec_dir + "/cmdline_clang", "w")
+        f.write(cmdline_clang+"\n")
+        f.close()
+        # Run the compilation
+        ret = os.system(cmdline_clang + " 2> " + self.exec_dir+"/clang_compile.log")    # Compile
+        if ret != 0:
+            raise Exception("Clang Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/clang_compile.log")
 
-        cmdline  = " " + platform_compilers[self.platform]
-        cmdline += " -" + self.group
-        cmdline += " " + self.negate_flags + " "                        # Add negative flags
-        cmdline += " ".join(self.flags)                                 # Add flags
-        cmdline += " -Wall -Wextra"                                     # Warning flags
-        cmdline += " -o " + self.executable                             # Output compiled file
-        cmdline += " -save-temps"
-        cmdline += " " + platform_code[self.platform]
-        cmdline += " " + benchmarks[self.benchmark]              # Benchmark individual flags
+        os.system("rm " + self.exec_dir+"/opt_compile.log 2> /dev/null")
+        os.system("rm " + self.exec_dir+"/llc_compile.log 2> /dev/null")
 
-        # If command lines are the same, and the executable exists, skip
-        if os.path.exists(self.executable) and os.path.exists(self.exec_dir+"/cmdline"):
-            cl = open(self.exec_dir+"/cmdline", "r").read()
-            if cl.strip() == cmdline.strip():
-                return
+        files = benchmarks[self.benchmark].split() + platform_code[self.platform].split()
+        asm_files = []
+        overall_opt_cmd = ""
+        overall_llc_cmd = ""
+        for f in files:
+            stem = f.rsplit('.', 1)[0]
+            stem = stem.rsplit('/',1)[1]
+            cmdline_opt= "opt " + self.flags + " " + stem + ".o -o "+ stem + "_opt.o"
+            cmdline_llc = "llc " + llc_flags[self.platform] + " " + stem + "_opt.o -o "+ stem + ".s"
+
+            overall_opt_cmd += cmdline_opt + "\n"
+            overall_llc_cmd += cmdline_llc +"\n"
+
+            asm_files.append(stem+".s")
+            ret = os.system(cmdline_opt + " 2>&1 >> " + self.exec_dir+"/opt_compile.log")    # Compile
+            if ret != 0:
+                raise Exception("opt Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/opt_compile.log")
+            ret = os.system(cmdline_llc + " 2>&1 >> " + self.exec_dir+"/llc_compile.log")    # Compile
+            if ret != 0:
+                raise Exception("llc Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/llc_compile.log")
+
+
+        # Link
+        cmdline_gcc =  platform_compilers[self.platform]
+        cmdline_gcc += " -o " + self.executable
+        cmdline_gcc += " " + " ".join(asm_files)
 
         os.system("rm "+self.executable + " 2> /dev/null");
 
         # Store some data for later use
-        f = open(self.exec_dir + "/cmdline", "w")
-        f.write(cmdline+"\n")
+        f = open(self.exec_dir + "/cmdline_opt", "w")
+        f.write(overall_opt_cmd)
+        f.close()
+        f = open(self.exec_dir + "/cmdline_llc", "w")
+        f.write(overall_llc_cmd)
+        f.close()
+        f = open(self.exec_dir + "/cmdline_gcc", "w")
+        f.write(cmdline_gcc+"\n")
         f.close()
 
         f = open(self.exec_dir + "/flags", "w")
@@ -165,9 +202,9 @@ class Test(object):
         f.close()
 
         # Run the compilation
-        ret = os.system(cmdline + " 2> " + self.exec_dir+"/compile.log")    # Compile
+        ret = os.system(cmdline_gcc + " 2> " + self.exec_dir+"/gcc_compile.log")    # Compile
         if ret != 0:
-            raise Exception("Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/compile.log")
+            raise Exception("Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/gcc_compile.log")
 
         os.chdir(cwd)
 
@@ -350,7 +387,7 @@ class TestManager(object):
 
     def createID(self, local_options):
         """Create a hexidecimal ID based on which options are on"""
-        return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x.value)), local_options)), 2), (len(local_options)+3)//4)
+        return "{0:0>{1}x}".format(int("".join(map(lambda x: str(int(x)), local_options)), 2), (len(local_options)+3)//4)
 
     def useOptionSubset(self, flags):
         """Create a subset of options based on the flags given"""
@@ -383,24 +420,14 @@ class TestManager(object):
             Benchmark   The name of the benchmark to be used
         """
 
-        if self.useSubset:
-            if len(values) != len(self.options_subset):
-                raise ValueError("Option values array incorrect size")
-        else:
-            if len(values) != len(self.options):
-                raise ValueError("Option values array incorrect size")
+        if len(values) != len(self.options):
+            raise ValueError("Option values array incorrect size")
 
-        local_options = self.createOptions(values)
-        flags = map(Option.getOption, local_options)
+        #print list(itertools.compress(self.options, values))
+        flags = " ".join(list(itertools.compress(self.options, values)))
 
-        # If we are only using a subset of the flags, negate the others
-        if self.useSubset:
-            negated = " ".join(map(Option.getOption, self.options_notset))
-        else:
-            negated = ""
-
-        t = Test(self.benchmark, flags, self.createID(local_options),
-            repetitions=self.repetitions, negate_flags=negated,
+        t = Test(self.benchmark, flags, self.createID(values),
+            repetitions=self.repetitions,
             working_prefix=self.working_prefix, group=self.group,
             compile_only=self.compile_only, platform=self.platform,
             extra=self.extra)
