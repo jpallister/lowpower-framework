@@ -164,13 +164,13 @@ class Test(object):
         for f in files:
             stem = f.rsplit('.', 1)[0]
             stem = stem.rsplit('/',1)[1]
-            cmdline_opt= "opt " + self.flags + " " + stem + ".o -o "+ stem + "_opt.o"
-            cmdline_llc = "llc " + llc_flags[self.platform] + " " + stem + "_opt.o -o "+ stem + ".s"
+            cmdline_opt= "opt " + self.flags + " " + self.exec_dir+"/"+stem + ".o -o "+ self.exec_dir+"/"+stem + "_opt.o"
+            cmdline_llc = "llc " + llc_flags[self.platform] + " " + self.exec_dir+"/"+stem + "_opt.o -o "+ self.exec_dir+"/"+stem + ".s"
 
             overall_opt_cmd += cmdline_opt + "\n"
             overall_llc_cmd += cmdline_llc +"\n"
 
-            asm_files.append(stem+".s")
+            asm_files.append(self.exec_dir+"/"+stem+".s")
             ret = os.system(cmdline_opt + " 2>&1 >> " + self.exec_dir+"/opt_compile.log")    # Compile
             if ret != 0:
                 raise Exception("opt Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/opt_compile.log")
