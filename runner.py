@@ -1,9 +1,16 @@
+#!/usr/bin/python
 """Runner to communicate with gdbs. Main usage as module
 
 Usage:
     runner.py --start PLATFORM
     runner.py --stop PLATFORM
     runner.py --get PLATFORM
+    runner.py [-vv] --run [--save FILE [--append]] EXECUTABLE PLATFORM
+
+Options:
+    --save FILE     Save the results to FILE
+    --append        Append results to file
+    -v --verbose    Verbose
 
 """
 import docopt
@@ -15,6 +22,10 @@ from time import sleep
 import pickle
 import os.path
 import subprocess
+try:
+    import getresult
+except ImportError:
+    print "Error: Cannot import getresult"
 
 epiphany_slave_gdbfile="""
 tar ext :{corenum}
@@ -152,6 +163,13 @@ class Runner(object):
 if __name__=="__main__":
     arguments = docopt.docopt(__doc__)
 
+    if arguments['--verbose'] == 1:
+        logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.INFO)
+    elif arguments['--verbose']== 2:
+        logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)        
+
     c = rfoo.InetConnection().connect(port=40000)
     if arguments["--start"]:
         rfoo.Proxy(c).startTrace(arguments["PLATFORM"])
@@ -159,4 +177,30 @@ if __name__=="__main__":
         rfoo.Proxy(c).closeTrace(arguments["PLATFORM"])
     if arguments["--get"]:
         print rfoo.Proxy(c).getLastTrace(arguments["PLATFORM"])
+    if arguments["--run"]:
+        r = Runner(arguments['PLATFORM'])        
+        print "Running executable..."
+        m = r.run(arguments['EXECUTABLE'])        
+        print "Getting trace data..."
+
+        if arguments['--save'] is not None:
+            if arguments['--append']:
+                f = open(arguments['--save'], "a+")
+            else:
+                f = open(arguments['--save'], "w+")
+
+            for l in m[0]:
+                f.write("{} {} {} {} {}\n".format(*l))
+            f.write("\n")
+            f.close()
+
+            (energy, time, power, peakpower) = getresult.getresult(arguments['--save'])
+        else:
+            (energy, time, power, peakpower) = getresult.getresult(tracedata=m)
+
+        print "Total Energy (10 aJ):\t{:f}".format(float(sum(energy))/len(energy))
+        print "Total Time (10 ns):\t{:f}".format(float(sum(time))/len(time))
+        print "Average Power (uW):\t{:f}".format(float(sum(power))/len(power))
+        print "Peak Power (uW):\t{:f}".format(float(sum(peakpower))/len(peakpower))
+
 
