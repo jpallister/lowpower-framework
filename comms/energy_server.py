@@ -1,7 +1,7 @@
 """Energy measurment server
 
 Usage:
-    energy_server.py [-v]
+    energy_server.py [-vv]
     energy_server.py -h
 
 Options:
@@ -13,7 +13,7 @@ import rfoo
 import pickle
 import collections
 import logging
-from logging import info, warning
+from logging import info, warning, debug
 
 class Measurement(object):
     def __init__(self, platform):
@@ -37,11 +37,14 @@ class EnergyHandler(rfoo.BaseHandler):
 
     def addValues(self, platform, bus, power, current, shunt, timestamp):
         if platform not in platforms.keys():
+            warning("addValues:Wrong platform:" +platform)
             return
+        debug("Added values power="+str(power))
         platforms[platform].addValues(bus, power, current, shunt, timestamp)
 
     def closeTrace(self, platform):
         if platform not in platforms:
+            warning("CloseTrace:Wrong platform:" +platform)
             return
 #        measurement_history.append(platforms[platform])
         last_measurement[platform] = platforms[platform]
@@ -52,7 +55,7 @@ class EnergyHandler(rfoo.BaseHandler):
         if platform not in platforms:
             warning("No trace found for {}".format(platform))
             return None
-        #info("getLastTrace for {} {}".format(platform,last_measurement[platform].trace))
+        debug("getLastTrace for {} {}".format(platform,last_measurement[platform].trace))
         return last_measurement[platform].trace
 #        for m in measurement_history[::-1]:
  #           if m.platform == platform:
@@ -68,7 +71,9 @@ class EnergyHandler(rfoo.BaseHandler):
 
 if __name__ == "__main__":
     arguments = docopt(__doc__)
-    if arguments['--verbose']:
+    if arguments['--verbose'] == 2:
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+    if arguments['--verbose'] == 1:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
     else:
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
