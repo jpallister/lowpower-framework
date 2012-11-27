@@ -152,6 +152,7 @@ class Test(object):
         # Run the compilation
         ret = os.system(cmdline_clang + " 2> " + self.exec_dir+"/clang_compile.log")    # Compile
         if ret != 0:
+            os.chdir(cwd)
             raise Exception("Clang Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/clang_compile.log")
 
         os.system("rm " + self.exec_dir+"/opt_compile.log 2> /dev/null")
@@ -173,9 +174,11 @@ class Test(object):
             asm_files.append(self.exec_dir+"/"+stem+".s")
             ret = os.system(cmdline_opt + " 2>&1 >> " + self.exec_dir+"/opt_compile.log")    # Compile
             if ret != 0:
+                os.chdir(cwd)
                 raise Exception("opt Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/opt_compile.log")
             ret = os.system(cmdline_llc + " 2>&1 >> " + self.exec_dir+"/llc_compile.log")    # Compile
             if ret != 0:
+                os.chdir(cwd)
                 raise Exception("llc Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/llc_compile.log")
 
 
@@ -204,6 +207,7 @@ class Test(object):
         # Run the compilation
         ret = os.system(cmdline_gcc + " 2> " + self.exec_dir+"/gcc_compile.log")    # Compile
         if ret != 0:
+            os.chdir(cwd)
             raise Exception("Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/gcc_compile.log")
 
         os.chdir(cwd)
