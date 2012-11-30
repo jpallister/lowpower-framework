@@ -9,7 +9,7 @@ TARGET = XC-1A
 APP_NAME =
 
 # The USED_MODULES variable lists other module used by the application.
-USED_MODULES = iic-steve ina219 
+USED_MODULES = module_i2c_master module_ina219 
 
 # The flags passed to xcc when building the application
 # You can also set the following to override flags for a particular language:
@@ -17,9 +17,9 @@ USED_MODULES = iic-steve ina219
 # If the variable XCC_MAP_FLAGS is set it overrides the flags passed to
 # xcc for the final link (mapping) stage.
 ifeq "$(CONFIG)" "Debug"
-XCC_FLAGS = -g -O0
+XCC_FLAGS = -g3 -O0
 else
-XCC_FLAGS = -g -O0
+XCC_FLAGS = -g3 -O3
 endif
 
 # The VERBOSE variable, if set to 1, enables verbose output from the make
