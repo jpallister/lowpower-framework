@@ -17,15 +17,21 @@ platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -static -g -T {fprefix}/platformcode/stm32f05_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -I {fprefix}/platformcode/ -DREPEAT_FACTOR=1048576".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{cprefix}/mips_toolchain/bin/mips-elf-gcc -g -T {fprefix}/platformcode/pic32mx_flash.ld -I {fprefix}/platformcode".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{cprefix}/epiphany_toolchain/bin/epiphany-elf-gcc -g -I {fprefix}/platformcode ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+}
+
+clang_flags = {
+    'cortex-m0' : '',
+    'cortex-a8' : '-DREPEAT_FACTOR=1048576'
 }
 
 llc_flags = {
     'cortex-m0' : "-march=thumb -mcpu=cortex-m0 -mtriple=arm-none-eabi",
     'cortex-m3' : "-march=thumb -mcpu=cortex-m3 -mtriple=arm-none-eabi",
     'cortex-m4' : "-march=thumb -mcpu=cortex-m4 -mtriple=arm-none-eabi",
+    'cortex-a8' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi",
 }
 
 platform_code = {
@@ -144,6 +150,7 @@ class Test(object):
         os.chdir(self.exec_dir)
 
         cmdline_clang  = "clang -g -c -emit-llvm -I {fprefix}/platformcode".format(fprefix=framework_prefix)
+        cmdline_clang += " " + clang_flags[self.platform]
         cmdline_clang += " " + benchmarks[self.benchmark] + " " + platform_code[self.platform]
         #save cmdline
         f = open(self.exec_dir + "/cmdline_clang", "w")
