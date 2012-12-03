@@ -2,6 +2,7 @@ import rfoo
 import serial
 import glob
 import sys
+import collections
 
 print "Starting uart_server now"
 
@@ -47,11 +48,10 @@ def read_2(ser):
     v |= ord(ser.read(1))
     return v
 
-time_table = []
+time_table = collections.defaultdict(list)
 
-last_power = -1
-last_time = -1
-c_p_abs = c_p_diff = c_t_abs = c_t_diff = c_t_tab = 0
+last_power = collections.defaultdict(lambda:-1)
+last_time = collections.defaultdict(lambda:-1)
 
 while True:
     while ser.inWaiting() == 0: pass
@@ -66,51 +66,43 @@ while True:
 
     if op == 0x0:
         print "Stop",dev
-        print c_p_abs, c_p_diff,"", c_t_abs, c_t_diff, c_t_tab,
-        print "n_table",len(time_table)
-        c_p_abs = c_p_diff = c_t_abs = c_t_diff = c_t_tab = 0
         if dev < len(platforms):
             rfoo.Proxy(c).closeTrace(platforms[dev])
         continue
     if op == 0x1:
-        time_table = []
-        last_time = -1
         print "Start",dev
         if dev < len(platforms):
             rfoo.Proxy(c).startTrace(platforms[dev])
+        time_table[dev] = []
+        last_time[dev] = -1
+        last_power[dev] = -1
         continue
 
     if op == 0x2:
         if enc_p == 0:
             power = read_4(ser)
-            c_p_abs += 1
         else:
             val = ord(ser.read(1))
             if val > 128:
                 val = val - 256
-            power = last_power + val
-            c_p_diff += 1
+            power = last_power[dev] + val
         if enc_t == 0:
             time = read_4(ser)
-            if last_time != -1:
-                time_table.append(time-last_time)
-            c_t_abs += 1
+            if last_time[dev] != -1:
+                time_table[dev].append(time-last_time[dev])
         elif enc_t == 1:
-            time = last_time + time_table[ord(ser.read(1))]
-            c_t_tab += 1
+            time = last_time[dev] + time_table[dev][ord(ser.read(1))]
         else:
-            time = last_time + read_2(ser)
-            time_table.append(time-last_time)
-            c_t_diff += 1
+            time = last_time[dev] + read_2(ser)
+            time_table[dev].append(time-last_time[dev])
 
         if time > 2**32:
             time -= 2**32
-            print "ovrflw?"
 
 #        print dev, vals
         rfoo.Proxy(c).addValues(platforms[dev], 0, power, 0, 0, time)
-        last_power = power
-        last_time = time
+        last_power[dev] = power
+        last_time[dev] = time
         continue
 
 

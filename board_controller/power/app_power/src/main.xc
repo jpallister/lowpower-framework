@@ -5,21 +5,52 @@
 #include "i2c.h"
 #include "ina219.h"
 
+//////////////////////////////////////////////////////////////////////////
+// Config defines
+
+// #define ENABLE_CORTEX_M0
+// #define ENABLE_CORTEX_M3
+
+#define ENABLE_CORTEX_A8
+
+// #define ENABLE_EPIPHANY
+// #define ENABLE_XMOS
+
+
 //#define DEBUG_PRINT
 //#define CONTINUOUS
+
+#define MAX_SAMPLERATE      5000
+
+#define I2C_FAST_TICKS      250
+#define I2C_HISPEED_TICKS   100
+
+#define UART_BUF_SIZE   1024
+#define UART_TABLE_SIZE 256
+
+//////////////////////////////////////////////////////////////////////////
+
+#define INDEX_M0    0
+#define INDEX_M3    1
+#define INDEX_A8_0  2
+#define INDEX_A8_1  3
+#define INDEX_A8_2  4
 
 #define IIC_ADDRESS_ADC_B  (0x41)
 #define IIC_ADDRESS_ADC_A  (0x45)
 
-//#define BIT_RATE 1152000
 #define BIT_RATE (115200*4)
-//#define BIT_RATE 500000
 #define BIT_TIME XS1_TIMER_HZ / BIT_RATE
 #define BITS_PER_BYTE 8
 #define SET_PARITY 0
 #define STOP_BIT 1
 
-#define MIN_DELAY   20000
+#define MIN_DELAY   (XS1_TIMER_HZ/20000)
+#ifdef CONTINUOUS
+    #define INTERVAL    10000000
+#else
+    #define INTERVAL    -1
+#endif
 
 // UART
 // on stdcore[0] :  port rx = PORT_UART_RX;
@@ -38,58 +69,42 @@ on stdcore[0] : port selg = PORT_CLOCKLED_SELG;
 on stdcore[0] : port selr = PORT_CLOCKLED_SELR;
 
 // 3B
-// on stdcore[3]: port sdaA_X3B = XS1_PORT_1E;
-// on stdcore[3]: port sclA_X3B = XS1_PORT_1F;
 on stdcore[3]: port triggerA_X3B = XS1_PORT_4C;
+on stdcore[3]: struct r_i2c A_X3B = {XS1_PORT_1F, XS1_PORT_1E, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
-on stdcore[3]: struct r_i2c A_X3B = {XS1_PORT_1F, XS1_PORT_1E, 250, 32};
 
-
-on stdcore[3]: port sdaB_X3B = XS1_PORT_1G;
-on stdcore[3]: port sclB_X3B = XS1_PORT_1H;
 on stdcore[3]: port triggerB_X3B = XS1_PORT_4D;
+on stdcore[3]: struct r_i2c B_X3B = {XS1_PORT_1H, XS1_PORT_1G, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
 // 3A
-//on stdcore[3]: port sdaA_X3A = XS1_PORT_1A;
-//on stdcore[3]: port sclA_X3A = XS1_PORT_1B;
 on stdcore[3]: port triggerA_X3A = XS1_PORT_4A;
-
-on stdcore[3]: struct r_i2c A_X3A = {XS1_PORT_1B, XS1_PORT_1A, 250};
-// on stdcore[3]: struct r_i2c A_X3A = {XS1_PORT_1B, XS1_PORT_1A, 1000};
+on stdcore[3]: struct r_i2c A_X3A = {XS1_PORT_1B, XS1_PORT_1A, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
 //on stdcore[3]: port sdaB_X3A = XS1_PORT_1C;
 //on stdcore[3]: port sclB_X3A = XS1_PORT_1D;
 on stdcore[3]: port triggerB_X3A = XS1_PORT_4B;
-
-on stdcore[3]: struct r_i2c B_X3A = {XS1_PORT_1D, XS1_PORT_1C, 250};
+on stdcore[3]: struct r_i2c B_X3A = {XS1_PORT_1D, XS1_PORT_1C, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 // on stdcore[3]: struct r_i2c B_X3A = {XS1_PORT_1D, XS1_PORT_1C, 1000};
 
 // 1A
-on stdcore[1]: port sdaA_X1A = XS1_PORT_1A;
-on stdcore[1]: port sclA_X1A = XS1_PORT_1B;
 on stdcore[1]: port triggerA_X1A = XS1_PORT_4A;
+on stdcore[1]: struct r_i2c A_X1A = {XS1_PORT_1B, XS1_PORT_1A, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
-on stdcore[1]: port sdaB_X1A = XS1_PORT_1C;
-on stdcore[1]: port sclB_X1A = XS1_PORT_1D;
 on stdcore[1]: port triggerB_X1A = XS1_PORT_4B;
+on stdcore[1]: struct r_i2c B_X1A = {XS1_PORT_1D, XS1_PORT_1C, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
 // 2A
-on stdcore[2]: port sdaA_X2A = XS1_PORT_1A;
-on stdcore[2]: port sclA_X2A = XS1_PORT_1B;
 on stdcore[2]: port triggerA_X2A = XS1_PORT_4A;
+on stdcore[2]: struct r_i2c A_X2A = {XS1_PORT_1B, XS1_PORT_1A, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
-on stdcore[2]: port sdaB_X2A = XS1_PORT_1C;
-on stdcore[2]: port sclB_X2A = XS1_PORT_1D;
 on stdcore[2]: port triggerB_X2A = XS1_PORT_4B;
+on stdcore[2]: struct r_i2c B_X2A = {XS1_PORT_1D, XS1_PORT_1C, I2C_FAST_TICKS, I2C_HISPEED_TICKS};
 
 // Bottom row
-on stdcore[0]: port sdaA_bottom = XS1_PORT_1A;
-on stdcore[0]: port sclA_bottom = XS1_PORT_1B;
-on stdcore[0]: port triggerA_bottom = XS1_PORT_1C;
+// on stdcore[0]: port sdaA_bottom = XS1_PORT_1A;
+// on stdcore[0]: port sclA_bottom = XS1_PORT_1B;
+// on stdcore[0]: port triggerA_bottom = XS1_PORT_1C;
 
-// on stdcore[2]: out port sdaBB = XS1_PORT_1G;
-// on stdcore[2]: out port sclBB = XS1_PORT_1H;
-// on stdcore[2]: port triggerBB = XS1_PORT_4D;
 
 // if interval == -1, wait for trigger
 void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int address, unsigned maxuA, unsigned resistor, int pga_range, int interval)
@@ -107,8 +122,6 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
     int cnt, last;
     unsigned long energy;
     unsigned long tottime, pwr_avg=0;
-
-    printf("Init\n");
 
     cfg = INA219_CFGB_BUSV_RANGE(INA219_CFG_BUSV_RANGE_16)
         | INA219_CFGB_PGA_RANGE(pga_range)
@@ -150,15 +163,15 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
         {
             last = now;
             t when timerafter(now + MIN_DELAY) :> now;
-            // bus = ina219_bus_mV(ina219,ports);
             pwr = ina219_power_uW(ina219,t,ports);
-            // current = ina219_current_uA(ina219, t, ports);
-            // shunt = ina219_shunt_uV(ina219,ports);
+
+            #ifdef CONTINUOUS
+                bus = ina219_bus_mV(ina219,ports);
+                current = ina219_current_uA(ina219, t, ports);
+                shunt = ina219_shunt_uV(ina219,ports);
+            #endif
             send <: 2;
-            // send <: bus;
             send <: pwr;
-            // send <: current;
-            // send <: shunt;
             send <: now;
             trigger :> trig;
 
@@ -168,7 +181,9 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
                 trig = 0;
             }
 
-          // printf("%dmV %duW %duA %duV   %duW\n", bus, pwr, current, shunt, pwr_avg);
+        #ifdef DEBUG_PRINT
+          printf("%dmV %duW %duA %duV   %duW\n", bus, pwr, current, shunt, pwr_avg);
+        #endif
             cnt += 1;
 
             energy += pwr*(now-last)>>10;
@@ -178,7 +193,9 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
         if(interval == -1)
             send <:0;
 
-        printf("unTriggered: %d measurements\nEnergy %d\nTime %d\n", cnt, energy/1000*1024, tottime);
+        #ifdef DEBUG_PRINT
+            printf("unTriggered: %d measurements\nEnergy %d\nTime %d\n", cnt, energy/1000*1024, tottime);
+        #endif
 
     }
     // return;
@@ -309,8 +326,6 @@ void txByte (out port TXD, int byte) {
     t when timerafter (time) :> void;
 }
 
-#define UART_BUF_SIZE   1024
-
 void UART_buffer(chanend from_sense, chanend to_uart)
 {
     short buf1[UART_BUF_SIZE];
@@ -358,7 +373,7 @@ void UART_buffer(chanend from_sense, chanend to_uart)
 
 void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
 {
-    int time_table[256];
+    int time_table[UART_TABLE_SIZE];
     int n_table=0;
     int last_time=-1, last_power=-1;
     int can_send, val, i, pwr, time, found=0;
@@ -386,13 +401,11 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
         }
         else if(val == 0)
         {
-            printf("lastp %d\n", last_power);
             last_time = -1;
             last_power = -1;
             val = (channel & 0x7);
             to_uart <: (int)1;
             to_uart <: (unsigned char)val;
-            printf("%d %d  %d %d %d\nn_table %d\n", c_p_abs, c_p_diff, c_t_abs, c_t_diff, c_t_tab, n_table);
             c_p_abs = c_p_diff = c_t_abs = c_t_diff = c_t_tab = 0;
             n_table = 0;
         }
@@ -479,7 +492,19 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
 
     uartTX <: 1;
 
-    sensors[0] <: 1;
+    #ifdef ENABLE_CORTEX_M0
+        sensors[INDEX_M0] <: 1;
+    #endif
+
+    #ifdef ENABLE_CORTEX_M3
+        sensors[INDEX_M3] <: 1;
+    #endif
+
+    #ifdef ENABLE_CORTEX_A8
+        sensors[INDEX_A8_0] <: 1;
+        sensors[INDEX_A8_1] <: 1;
+        sensors[INDEX_A8_2] <: 1;
+    #endif
 
     while(1)
     {
@@ -492,7 +517,7 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
                         sensors[i] :> c;
                         txByte(uartTX, c);
                     }
-                   sensors[0] <: 1;
+                   sensors[i] <: 1;
                     break;
                 }
             default: break;
@@ -504,69 +529,58 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
 
 int main()
 {
-    chan sends[CHANS], chanTX, chanRX;
+    chan sends[CHANS];
     chan flashring[4], to_bstream, to_uart;
+    chan m0_to_buf, m0_to_compress;
+    chan m3_to_buf, m3_to_compress;
+    chan a8_to_buf[3], a8_to_compress[3];
 
-    par {
+    par 
+    {
+        // Useless flashing
         on stdcore[0] : fadecolours(selg, selr);
         on stdcore[0] : flash(led0, flashring[0], flashring[1], 1);
         on stdcore[1] : flash(led1, flashring[1], flashring[2], 0);
         on stdcore[2] : flash(led2, flashring[2], flashring[3], 0);
         on stdcore[3] : flash(led3, flashring[3], flashring[0], 0);
-        on stdcore[0] : {
-            UART_comms(tx, rx, sends);
-        }
-        // on stdcore[0] : {
 
-        //     while(1) {
-        //         sends[1] <: 2;
+        // UART communications
+        on stdcore[0] : UART_comms(tx, rx, sends);
 
-        //         sends[1] <: 0x11;
-        //         sends[1] <: 0x11;
-        //         sends[1] <: 0x11;
-        //         sends[1] <: 0x11;
-        //         sends[1] <: 10;
+    #ifdef ENABLE_CORTEX_M0
+        on stdcore[3]: test_ina(A_X3B, triggerA_X3B, m0_to_buf, IIC_ADDRESS_ADC_A, 40000, 5000, INA219_CFG_PGA_RANGE_40, INTERVAL);
+        on stdcore[1]: UART_buffer(m0_to_buf, m0_to_compress);
+        on stdcore[1]: UART_byte_stream(m0_to_compress, sends[0], 0);
+    #endif
 
-        //         sends[1] <: 0xAA;
-        //         sends[1] <: 0xAA;
-        //         sends[1] <: 0xAA;
-        //         sends[1] <: 0xAA;
-        //         sends[1] <: 11;
-        //     }
+    #ifdef ENABLE_CORTEX_M3      
+        on stdcore[3]: test_ina(B_X3B, triggerB_X3B, m3_to_buf, IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_40, INTERVAL);
+        on stdcore[1]: UART_buffer(m3_to_buf, m3_to_compress);
+        on stdcore[1]: UART_byte_stream(m3_to_compress, sends[1], 1);
+    #endif
 
-        // }
-       // on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[1], IIC_ADDRESS_ADC_A, 400000, 50);
-
-    on stdcore[1]: UART_buffer(to_uart, to_bstream);
-    on stdcore[1]: UART_byte_stream(to_bstream, sends[0], 0);
-
-    // Cortex m0 and m3
-      on stdcore[3]: test_ina(A_X3B, triggerA_X3B, to_uart, IIC_ADDRESS_ADC_A, 40000, 5000, INA219_CFG_PGA_RANGE_40, -1);
-      // on stdcore[3]: test_ina(A_X3B, triggerA_X3B, to_uart, IIC_ADDRESS_ADC_A, 40000, 5000, INA219_CFG_PGA_RANGE_40, 100000);
-//      on stdcore[3]: test_ina(sdaA_X3B, sclA_X3B, triggerA_X3B, sends[0], IIC_ADDRESS_ADC_A, 40000, 50, INA219_CFG_PGA_RANGE_40, 100000);
-//      on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_40, -1);
-//      on stdcore[3]: test_ina(sdaB_X3B, sclB_X3B, triggerB_X3B, sends[1], IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_80, 500000);
-
-        // Cortex a8
+    #ifdef ENABLE_CORTEX_A8
         // mpu
-//      on stdcore[3]: test_ina(sdaA_X3A, sclA_X3A, triggerA_X3A, sends[2], IIC_ADDRESS_ADC_A, 400000, 100, INA219_CFG_PGA_RANGE_40, -1);
-//      on stdcore[3]: test_ina(sdaA_X3A, sclA_X3A, triggerA_X3A, sends[2], IIC_ADDRESS_ADC_A, 400000, 100, INA219_CFG_PGA_RANGE_40, 500000);
+        on stdcore[3]: test_ina(A_X3A, triggerA_X3A, a8_to_buf[0], IIC_ADDRESS_ADC_A, 400000, 100, INA219_CFG_PGA_RANGE_40, INTERVAL);
         // ddr
-//      on stdcore[2]: test_ina(sdaA_X2A, sclA_X2A, triggerA_X2A, sends[3], IIC_ADDRESS_ADC_A, 400000, 1000, INA219_CFG_PGA_RANGE_160, -1);
-      // on stdcore[2]: test_ina(sdaA_X2A, sclA_X2A, triggerA_X2A, sends[3], IIC_ADDRESS_ADC_A, 400000, 1000, INA219_CFG_PGA_RANGE_160, 500000);
+        on stdcore[2]: test_ina(A_X2A, triggerA_X2A, a8_to_buf[1], IIC_ADDRESS_ADC_A, 400000, 1000, INA219_CFG_PGA_RANGE_160, INTERVAL);
         // vcore
-//      on stdcore[2]: test_ina(sdaB_X2A, sclB_X2A, triggerB_X2A, sends[4], IIC_ADDRESS_ADC_B, 400000, 1000, INA219_CFG_PGA_RANGE_160, -1);
-      // on stdcore[2]: test_ina(sdaB_X2A, sclB_X2A, triggerB_X2A, sends[4], IIC_ADDRESS_ADC_B, 400000, 1000, INA219_CFG_PGA_RANGE_160, 500000);
+        on stdcore[2]: test_ina(B_X2A, triggerB_X2A, a8_to_buf[2], IIC_ADDRESS_ADC_B, 400000, 1000, INA219_CFG_PGA_RANGE_160, INTERVAL);
 
-        // epiphany
- //     on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[5], IIC_ADDRESS_ADC_A, 400000, 50, INA219_CFG_PGA_RANGE_40, 500000);
-   //   on stdcore[1]: test_ina(sdaB_X1A, sclB_X1A, triggerB_X1A, sends[6], IIC_ADDRESS_ADC_B, 800000, 50, INA219_CFG_PGA_RANGE_40, 500000);
+        on stdcore[1]: UART_buffer(a8_to_buf[0], a8_to_compress[0]);
+        on stdcore[1]: UART_byte_stream(a8_to_compress[0], sends[2], 2);
+        on stdcore[2]: UART_buffer(a8_to_buf[1], a8_to_compress[1]);
+        on stdcore[2]: UART_byte_stream(a8_to_compress[1], sends[3], 3);
+        on stdcore[0]: UART_buffer(a8_to_buf[2], a8_to_compress[2]);
+        on stdcore[0]: UART_byte_stream(a8_to_compress[2], sends[4], 4);
+    #endif        
 
-      // xmos
-//      on stdcore[0]: test_ina(sdaA_bottom, sclA_bottom, triggerA_bottom, sends[7], IIC_ADDRESS_ADC_B, 400000, 50, INA219_CFG_PGA_RANGE_40, -1);
+    // epiphany
+    // on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[5], IIC_ADDRESS_ADC_A, 400000, 50, INA219_CFG_PGA_RANGE_40, 500000);
+    // on stdcore[1]: test_ina(sdaB_X1A, sclB_X1A, triggerB_X1A, sends[6], IIC_ADDRESS_ADC_B, 800000, 50, INA219_CFG_PGA_RANGE_40, 500000);
 
+    // xmos
+    // on stdcore[0]: test_ina(sdaA_bottom, sclA_bottom, triggerA_bottom, sends[7], IIC_ADDRESS_ADC_B, 400000, 50, INA219_CFG_PGA_RANGE_40, -1);
 
-        // on stdcore[2]: printf("hi1");
-        // on stdcore[2]: printf("hi2");
     }
 }
