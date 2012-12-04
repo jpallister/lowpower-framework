@@ -78,6 +78,7 @@ if __name__ == "__main__":
 
     last_power = collections.defaultdict(lambda:-1)
     last_time = collections.defaultdict(lambda:-1)
+    pow_lsb = collections.defaultdict(lambda:-1)
 
     while True:
         # m = ord(ser.read(1))
@@ -101,7 +102,8 @@ if __name__ == "__main__":
                 q.put([dev, op])
             continue
         if op == 0x1:
-            print "Start",dev
+            pow_lsb[dev] = read_2(ser)
+            print "Start",dev, "pow_lsb:", pow_lsb[dev]
             if dev < len(platforms):
                 # rfoo.Proxy(c).startTrace(platforms[dev])
                 q.put([dev, op])
@@ -143,7 +145,9 @@ if __name__ == "__main__":
             if time > 2**32:
                 time -= 2**32
 
-            q.put([dev, op, power, time])
+            power_scaled = power * pow_lsb[dev]
+
+            q.put([dev, op, power_scaled, time])
             # rfoo.Proxy(c).addValues(platforms[dev], 0, power, 0, 0, time)
             last_power[dev] = power
             last_time[dev] = time

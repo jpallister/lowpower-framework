@@ -145,6 +145,7 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
 
     printf("Power LSB:%d\n", ina219.pow_lsb);
 
+
     trig = 0;
 
      while(1)
@@ -157,6 +158,7 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
                 pwr = ina219_power_uW(ina219,t,ports);
             }
             send <: 1;
+            send <: ina219.pow_lsb;
         }
 
 
@@ -177,7 +179,7 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
                 shunt = ina219_shunt_uV(ina219,ports);
             #endif
             send <: 2;
-            send <: pwr;
+            send <: pwr/ina219.pow_lsb;
             send <: now;
             trigger :> trig;
 
@@ -377,6 +379,11 @@ void UART_buffer(chanend from_sense, chanend to_uart)
                     from_sense :> val;
                     buf2[end] = val;
                 }
+                if(val == 1)
+                {
+                    from_sense :> val;
+                    buf1[end] = val;
+                }
 
                 end = (end+1)&(UART_BUF_SIZE-1);
                 
@@ -393,6 +400,10 @@ void UART_buffer(chanend from_sense, chanend to_uart)
             {
                 to_uart <: (int)buf1[head];
                 to_uart <: (int)buf2[head];
+            }
+            if(buf_cmd[head] == 1)
+            {
+                to_uart <: (int)buf1[head];
             }
             head = (head+1)&(UART_BUF_SIZE-1);
             can_send = 0;
@@ -431,9 +442,13 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
 
         if(val == 1)
         {
+            from_sense :> pwr;
+
             val = (channel & 0x7) | (0x8);
-            to_uart <: (int)1;
+            to_uart <: (int)3;
             to_uart <: (unsigned char)val;
+            to_uart <: (unsigned char)((pwr>>8)&0xFF); // Send pow_lsb onwards
+            to_uart <: (unsigned char)(pwr&0xFF);      // Send pow_lsb onwards
         }
         else if(val == 0)
         {
