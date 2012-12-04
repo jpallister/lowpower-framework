@@ -8,7 +8,9 @@
 //////////////////////////////////////////////////////////////////////////
 // Config defines
 
-// #define ENABLE_CORTEX_M0
+#define ADC_RANGE   INA219_CFG_ADC_RES_9
+
+//#define ENABLE_CORTEX_M0
 // #define ENABLE_CORTEX_M3
 
 #define ENABLE_CORTEX_A8
@@ -20,12 +22,14 @@
 //#define DEBUG_PRINT
 //#define CONTINUOUS
 
-#define MAX_SAMPLERATE      5000
+// #define USE_MARKER_BYTE
+
+#define MAX_SAMPLERATE      10000
 
 #define I2C_FAST_TICKS      250
-#define I2C_HISPEED_TICKS   100
+#define I2C_HISPEED_TICKS   32
 
-#define UART_BUF_SIZE   1024
+#define UART_BUF_SIZE   2048
 #define UART_TABLE_SIZE 256
 
 //////////////////////////////////////////////////////////////////////////
@@ -45,9 +49,11 @@
 #define SET_PARITY 0
 #define STOP_BIT 1
 
-#define MIN_DELAY   (XS1_TIMER_HZ/20000)
+#define MIN_DELAY   (XS1_TIMER_HZ/MAX_SAMPLERATE)
 #ifdef CONTINUOUS
-    #define INTERVAL    10000000
+    #define INTERVAL    1000000
+    #undef MAX_SAMPLERATE
+    #define MAX_SAMPLERATE INTERVAL
 #else
     #define INTERVAL    -1
 #endif
@@ -113,20 +119,17 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
     INA219_t ina219;
     int pwr, bus, current, shunt;
     unsigned cfg, ret, trig, delay, now;
-    short power_array[50];
-    short current_array[50];
-    short bus_array[50];
-    short shunt_array[50];
-    short timestamp_array[50];
     int n_vals, avg, start;
     int cnt, last;
     unsigned long energy;
     unsigned long tottime, pwr_avg=0;
 
+    unsigned  p_cnt=0;
+
     cfg = INA219_CFGB_BUSV_RANGE(INA219_CFG_BUSV_RANGE_16)
         | INA219_CFGB_PGA_RANGE(pga_range)
-        | INA219_CFGB_BADC_RES_AVG(INA219_CFG_ADC_RES_12)
-        | INA219_CFGB_SADC_RES_AVG(INA219_CFG_ADC_RES_12)
+        | INA219_CFGB_BADC_RES_AVG(ADC_RANGE)
+        | INA219_CFGB_SADC_RES_AVG(ADC_RANGE)
         | INA219_CFGB_OPMODE(INA219_CFG_OPMODE_SCBV_CT);
         //| INA219_CFGB_OPMODE(INA219_CFG_OPMODE_SV_CT);
     ret = ina219_init(ina219, t, ports, address);
@@ -139,6 +142,8 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
 
     if(i2c_master_start_high_speed(ports) == 0)
         printf("Couldnt enter high speed mode\n");
+
+    printf("Power LSB:%d\n", ina219.pow_lsb);
 
     trig = 0;
 
@@ -164,6 +169,7 @@ void test_ina(struct r_i2c &ports, port trigger, chanend send, unsigned int addr
             last = now;
             t when timerafter(now + MIN_DELAY) :> now;
             pwr = ina219_power_uW(ina219,t,ports);
+            t :> start;
 
             #ifdef CONTINUOUS
                 bus = ina219_bus_mV(ina219,ports);
@@ -326,9 +332,32 @@ void txByte (out port TXD, int byte) {
     t when timerafter (time) :> void;
 }
 
+#ifdef CONTINUOUS
 void UART_buffer(chanend from_sense, chanend to_uart)
 {
-    short buf1[UART_BUF_SIZE];
+    int val, op, p, t ;
+
+    while(1)
+    {
+        to_uart :> val;
+        from_sense :> op;
+        if(op == 2)
+        {
+            from_sense :> p;
+            from_sense :> t;
+        }
+        to_uart <: op;
+        if(op == 2)
+        {
+            to_uart <: p;
+            to_uart <: t;
+        }
+    }
+}
+#else
+void UART_buffer(chanend from_sense, chanend to_uart)
+{
+    int buf1[UART_BUF_SIZE];
     int buf2[UART_BUF_SIZE];
     char buf_cmd[UART_BUF_SIZE];
     int head=0, end=0, can_send=0;
@@ -354,7 +383,7 @@ void UART_buffer(chanend from_sense, chanend to_uart)
                 break;
             }
             case to_uart :> can_send: break;
-//            default: break;
+        //    default: break;
         }
 
         if(can_send && head != end)
@@ -370,6 +399,7 @@ void UART_buffer(chanend from_sense, chanend to_uart)
         }
     }
 }
+#endif
 
 void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
 {
@@ -385,6 +415,12 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
     int c_t_abs=0;
     int c_t_diff=0;
     int c_t_tab=0;
+
+    int do_continuous=0;
+
+    #ifdef CONTINUOUS
+        do_continuous = 1;
+    #endif
 
     while(1)
     {
@@ -414,9 +450,11 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
             bytes[0] = (channel & 0x7) | (0x10);
             b_len = 1;
             from_sense :> pwr;
+//            pwr = pwr / 280;
             from_sense :> time;
+            val = pwr - last_power;
 
-            if(last_time == -1 || pwr-last_power > 128 || pwr-last_power < -127)
+            if(last_time == -1 || val > 32767 || val < -32767 || do_continuous)
             {
                 bytes[1] = (pwr >> 24) & 0xFF;
                 bytes[2] = (pwr >> 16) & 0xFF;
@@ -424,6 +462,12 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
                 bytes[4] = (pwr) & 0xFF;
                 b_len += 4;
                 c_p_abs += 1;
+            }
+            else if(val > 128 || val < -127)
+            {
+                bytes[0] |= 0x40;
+                bytes[b_len] = (val >> 8) & 0xFF; b_len += 1;
+                bytes[b_len] = (val) & 0xFF; b_len += 1;
             }
             else
             {
@@ -437,14 +481,14 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
             for(i = 0; i < n_table; ++i)
                 if(time_table[i] == time - last_time)
                     found = i;
-            if(found != -1)
+            if(found != -1 && !do_continuous)
             {
                 bytes[0] |= 0x20;
                 bytes[b_len] = found;
                 b_len += 1;
                 c_t_tab += 1;
             }
-            else if(last_time == -1 || time-last_time > 65535 || 1)
+            else //if(last_time == -1 || time-last_time > 65535 || 1)
             {
                 if(n_table < 256 && last_time != -1)
                 {
@@ -457,19 +501,19 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
                 bytes[b_len] = time & 0xFF;  b_len+=1;
                 c_t_abs += 1;
             }
-            else
-            {
-                val = time - last_time;
-                if(n_table < 256)
-                {
-                    time_table[n_table] = val;
-                    n_table += 1;
-                }
-                bytes[0] |= 0x40;
-                bytes[b_len] = (val >> 8) & 0xFF; b_len += 1;
-                bytes[b_len] = (val) & 0xFF; b_len += 1;
-                c_t_diff += 1;
-            }
+            // else
+            // {
+            //     val = time - last_time;
+            //     if(n_table < 256)
+            //     {
+            //         time_table[n_table] = val;
+            //         n_table += 1;
+            //     }
+            //     bytes[0] |= 0x40;
+            //     bytes[b_len] = (val >> 8) & 0xFF; b_len += 1;
+            //     bytes[b_len] = (val) & 0xFF; b_len += 1;
+            //     c_t_diff += 1;
+            // }
 
             last_time = time;
             last_power = pwr;
@@ -485,7 +529,6 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
 
 void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
 {
-    timer t;
     unsigned tv,i,j;
     unsigned char c;
     int n;
@@ -512,13 +555,16 @@ void UART_comms(out port uartTX, out port uartRX, chanend sensors[CHANS])
         select {
             case sensors[i] :> n :
                 {
+                    #ifdef USE_MARKER_BYTE
+                        txByte(uartTX, 0xA5);
+                    #endif
                     for(j = 0; j < n; ++j)
                     {
                         sensors[i] :> c;
                         txByte(uartTX, c);
                     }
                    sensors[i] <: 1;
-                    break;
+                   break;
                 }
             default: break;
         }

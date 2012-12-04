@@ -55,6 +55,12 @@ last_time = collections.defaultdict(lambda:-1)
 
 while True:
     while ser.inWaiting() == 0: pass
+    m = ord(ser.read(1))
+
+    if m != 0xA5:
+        print "Marker error:",m
+        continue
+
     b1 = ord(ser.read(1))
 
     dev = b1 & 0x7
@@ -62,7 +68,6 @@ while True:
 
     enc_t = (b1 >> 5) & 0x3;
     enc_p = (b1 >> 7) & 0x1;
-
 
     if op == 0x0:
         print "Stop",dev
@@ -91,7 +96,11 @@ while True:
             if last_time[dev] != -1:
                 time_table[dev].append(time-last_time[dev])
         elif enc_t == 1:
-            time = last_time[dev] + time_table[dev][ord(ser.read(1))]
+            try:
+                time = last_time[dev] + time_table[dev][ord(ser.read(1))]
+            except IndexError:
+                print "Table error"
+                continue
         else:
             time = last_time[dev] + read_2(ser)
             time_table[dev].append(time-last_time[dev])
@@ -99,7 +108,6 @@ while True:
         if time > 2**32:
             time -= 2**32
 
-#        print dev, vals
         rfoo.Proxy(c).addValues(platforms[dev], 0, power, 0, 0, time)
         last_power[dev] = power
         last_time[dev] = time
