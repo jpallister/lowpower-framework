@@ -68,16 +68,20 @@ def getresult(fname=None, tracedata=None):
         power.append(float(p)/n)
         peakpower.append(pp)
 
-    return (energy, time, power, peakpower)
+    return (energy, time, power, peakpower, map(len, times))
     
 if __name__ == "__main__":   
     arguments = docopt.docopt(__doc__)
 
-    (energy, time, power, peakpower) = getresult(arguments["FILE"])
+    (energy, time, power, peakpower, samples) = getresult(arguments["FILE"])
 
     if arguments['--csv']:
         print "{:f}, {:f}, {:f}".format(float(sum(energy))/len(energy), float(sum(time))/len(time), float(sum(power))/len(power))
     else:
+        print "Samples: {:10}".format( sum(samples)/len(samples))
+        ss = map(lambda s,t: s/(t/(100.*10**6)), samples, time)
+        print "Samples/s:   {:10.3f}".format(sum(ss)/len(ss))
+
         if arguments['--sane-units']:
             energy = map(lambda x: x/(100.*10**12), energy)
             time = map(lambda x: x/(100.*10**6), time)

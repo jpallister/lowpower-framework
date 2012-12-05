@@ -194,10 +194,11 @@ if __name__=="__main__":
             f.write("\n")
             f.close()
 
-            (energy, time, power, peakpower) = getresult.getresult(arguments['--save'])
+            (energy, time, power, peakpower, ss) = getresult.getresult(arguments['--save'])
         else:
-            (energy, time, power, peakpower) = getresult.getresult(tracedata=m)
+            (energy, time, power, peakpower, ss) = getresult.getresult(tracedata=m)
 
+        print "Avg Samples:",sum(ss)/len(ss)
         print "Total Energy (10 aJ):\t{:f}".format(float(sum(energy))/len(energy))
         print "Total Time (10 ns):\t{:f}".format(float(sum(time))/len(time))
         print "Average Power (uW):\t{:f}".format(float(sum(power))/len(power))
