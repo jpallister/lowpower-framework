@@ -81,11 +81,11 @@ if __name__ == "__main__":
     pow_lsb = collections.defaultdict(lambda:-1)
 
     while True:
-        # m = ord(ser.read(1))
+        m = ord(ser.read(1))
 
-        # if m != 0xA5:
-        #     print "Marker error:",m
-        #     continue
+        if m != 0xA5:
+            print "Marker error:",m
+            continue
 
         b1 = ord(ser.read(1))
 
@@ -134,9 +134,12 @@ if __name__ == "__main__":
                     time_table[dev].append(time-last_time[dev])
             elif enc_t == 1:
                 try:
-                    time = last_time[dev] + time_table[dev][ord(ser.read(1))]
+                    tindex = ord(ser.read(1))
+                    if tindex < 0:
+                        tindex += 256
+                    time = last_time[dev] + time_table[dev][tindex]
                 except IndexError:
-                    print "Table error"
+                    print "Table error", tindex, time_table[dev]
                     continue
             else:
                 time = last_time[dev] + read_2(ser)

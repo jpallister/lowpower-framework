@@ -1,7 +1,7 @@
 
 MEMORY
 {
-  ram (rx) : ORIGIN = 0x80300000, LENGTH = 0x10000
+  ram (rx) : ORIGIN = 0x80300000, LENGTH = 0x1000000
 }
 
 __stack = ORIGIN(ram) + LENGTH(ram);

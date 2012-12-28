@@ -12,15 +12,15 @@ void *_sbrk (int nbytes)
   /* The statically held previous end of the heap, with its initialization. */
   static void *heap_ptr = (void *)&_start_heap;         /* Previous end */
 
-  if ((end - (heap_ptr + nbytes)) < STACK_BUFFER )
+  // if ((end - (heap_ptr + nbytes)) < STACK_BUFFER )
     {
       void *base  = heap_ptr;
       heap_ptr   += nbytes;
                 
       return  base;
     }
-  else
-    {
-      return  (void *) -1;
-    }
+  // else
+    // {
+      // return  (void *) -1;
+    // }
 }       /* _sbrk () */

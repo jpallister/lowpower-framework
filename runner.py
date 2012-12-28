@@ -5,12 +5,13 @@ Usage:
     runner.py --start PLATFORM
     runner.py --stop PLATFORM
     runner.py --get PLATFORM
-    runner.py [-vv] --run [--save FILE [--append]] EXECUTABLE PLATFORM
+    runner.py [-vv] --run [--save FILE [--append]] [-d DUMPVALS] EXECUTABLE PLATFORM
 
 Options:
     --save FILE     Save the results to FILE
     --append        Append results to file
     -v --verbose    Verbose
+    -d DUMPVALS
 
 """
 import docopt
@@ -70,8 +71,11 @@ class Runner(object):
             self.platform = ["cortex-a8", "cortex-a8_ddr", "cortex-a8_core"]
         elif platform == "epiphany":
             self.platform = ["epiphany", "epiphany_io"]
+        self.gdb_vals = {}
+        self.cache_dump = None
 
-    def run(self, executable_path):
+
+    def run(self, executable_path, dump_vals=[], do_cache_dump=False):
         energy_server = rfoo.InetConnection().connect(port=40000)
         if "epiphany" in self.platform:
             p = subprocess.Popen("e-gdb -x epiphany_init_mem", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -98,7 +102,7 @@ class Runner(object):
             p = subprocess.Popen("e-gdb -x egdb.cmd.0", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             #p = subprocess.Popen("e-gdb -x egdb.cmd.0", shell=True)
             procs.append(p)
-         
+
             for p in procs:
                 p.wait()
                 p.communicate()
@@ -137,6 +141,13 @@ class Runner(object):
             sleep(1)
 
         info("Result has become available")
+
+        for val in dump_vals:
+            self.gdb_vals[val] = int(rfoo.Proxy(c).execute("p "+val).split('=')[-1])
+
+        if do_cache_dump:
+            self.cache_dump = rfoo.Proxy(c).execute("x/512 cache_dump")
+
         #rfoo.Proxy(c).execute("disconnect")
         self.m = []
         for p in self.platform:
@@ -145,6 +156,13 @@ class Runner(object):
         debug("Result {}".format(self.m))
 
         return self.m
+
+    def save_measurement(self, file_handles):
+        for m_trace, fh in zip(self.m, file_handles):
+            for l in m_trace:
+                fh.write("{} {} {} {} {}\n".format(*l))
+            fh.write("\n")
+
 
     def getConnection(self):
         if self.platform[0] == "cortex-m0":
@@ -168,7 +186,7 @@ if __name__=="__main__":
     elif arguments['--verbose']== 2:
         logging.basicConfig(format='[%(created)f]%(levelname)s:%(message)s', level=logging.DEBUG)
     else:
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)        
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
     c = rfoo.InetConnection().connect(port=40000)
     if arguments["--start"]:
@@ -178,21 +196,30 @@ if __name__=="__main__":
     if arguments["--get"]:
         print rfoo.Proxy(c).getLastTrace(arguments["PLATFORM"])
     if arguments["--run"]:
-        r = Runner(arguments['PLATFORM'])        
+        r = Runner(arguments['PLATFORM'])
         print "Running executable..."
-        m = r.run(arguments['EXECUTABLE'])        
+        if arguments['-d'] is not None:
+            m = r.run(arguments['EXECUTABLE'],dump_vals=arguments['-d'].split(','))
+        else:
+            m = r.run(arguments['EXECUTABLE'])
         print "Getting trace data..."
 
         if arguments['--save'] is not None:
-            if arguments['--append']:
-                f = open(arguments['--save'], "a+")
-            else:
-                f = open(arguments['--save'], "w+")
+            for i, m_trace in enumerate(m):
+                if i == 0:
+                    rfile = arguments['--save']
+                else:
+                    rfile = arguments['--save']+"_"+str(i)
 
-            for l in m[0]:
-                f.write("{} {} {} {} {}\n".format(*l))
-            f.write("\n")
-            f.close()
+                if arguments['--append']:
+                    f = open(rfile, "a+")
+                else:
+                    f = open(rfile, "w+")
+
+                for l in m_trace:
+                    f.write("{} {} {} {} {}\n".format(*l))
+                f.write("\n")
+                f.close()
 
             (energy, time, power, peakpower, ss) = getresult.getresult(arguments['--save'])
         else:
@@ -203,5 +230,9 @@ if __name__=="__main__":
         print "Total Time (10 ns):\t{:f}".format(float(sum(time))/len(time))
         print "Average Power (uW):\t{:f}".format(float(sum(power))/len(power))
         print "Peak Power (uW):\t{:f}".format(float(sum(peakpower))/len(peakpower))
+        if len(r.gdb_vals.items()) > 0:
+            print "GDB Values:"
+            for n, v in sorted(r.gdb_vals.items()):
+                print "\t",n,"=",v
 
 

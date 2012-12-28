@@ -3,7 +3,7 @@
 """Get a result, from the command line
 
 Usage: 
-    getresult [options] FILE
+    getresult [options] FILE...
     getresult -h
 
 Options:
@@ -28,6 +28,8 @@ def get_trace_from_file(fname):
             if len(cur) > 0:
                 times.append(cur)
             cur = []
+        elif l[0] == '#':
+            continue
         else:
             cur.append(map(int, l.split()))
     return times
@@ -73,55 +75,57 @@ def getresult(fname=None, tracedata=None):
 if __name__ == "__main__":   
     arguments = docopt.docopt(__doc__)
 
-    (energy, time, power, peakpower, samples) = getresult(arguments["FILE"])
+    for fname in arguments["FILE"]:
+        (energy, time, power, peakpower, samples) = getresult(fname)
 
-    if arguments['--csv']:
-        print "{:f}, {:f}, {:f}".format(float(sum(energy))/len(energy), float(sum(time))/len(time), float(sum(power))/len(power))
-    else:
-        print "Samples: {:10}".format( sum(samples)/len(samples))
-        ss = map(lambda s,t: s/(t/(100.*10**6)), samples, time)
-        print "Samples/s:   {:10.3f}".format(sum(ss)/len(ss))
-
-        if arguments['--sane-units']:
-            energy = map(lambda x: x/(100.*10**12), energy)
-            time = map(lambda x: x/(100.*10**6), time)
-            power = map(lambda x: x/(10.**6), power)
-            peakpower = map(lambda x: x/(10.**6), peakpower)
-
-            e_l = min(map(math.log10, energy))
-            t_l = min(map(math.log10, time))
-            p_l = min(map(math.log10, power))
-            pp_l = min(map(math.log10, peakpower))
-
-            e_l = math.floor(e_l/3)*3
-            t_l = math.floor(t_l/3)*3
-            p_l = math.floor(p_l/3)*3
-            pp_l = math.floor(pp_l/3)*3
-
-            units = {0: '', -3: 'm', -6: 'u', -9: 'n'}
-
-            energy = map(lambda x: x*10**(-e_l), energy)
-            e_unit = units[e_l] + 'J'
-            time = map(lambda x: x*10**(-t_l), time)
-            t_unit = units[t_l] + 's'
-            power = map(lambda x: x*10**(-p_l), power)
-            p_unit = units[p_l] + 'W'
-            peakpower = map(lambda x: x*10**(-pp_l), peakpower)
-            pp_unit = units[pp_l] + 'W'
+        if arguments['--csv']:
+            print "{:f}, {:f}, {:f}".format(float(sum(energy))/len(energy), float(sum(time))/len(time), float(sum(power))/len(power))
         else:
-            e_unit = '10 fJ'
-            t_unit = '10 nJ'
-            p_unit = 'uW'
-            pp_unit = 'uW'
+            print "Samples: {:10}".format( sum(samples)/len(samples))
+            ss = map(lambda s,t: s/(t/(100.*10**6)), samples, time)
+            print "Samples/s:   {:10.3f}".format(sum(ss)/len(ss))
+
+            if arguments['--sane-units']:
+                energy = map(lambda x: x/(100.*10**12), energy)
+                time = map(lambda x: x/(100.*10**6), time)
+                power = map(lambda x: x/(10.**6), power)
+                peakpower = map(lambda x: x/(10.**6), peakpower)
+
+                e_l = min(map(math.log10, energy))
+                t_l = min(map(math.log10, time))
+                p_l = min(map(math.log10, power))
+                pp_l = min(map(math.log10, peakpower))
+
+                e_l = math.floor(e_l/3)*3
+                t_l = math.floor(t_l/3)*3
+                p_l = math.floor(p_l/3)*3
+                pp_l = math.floor(pp_l/3)*3
+
+                units = {0: '', -3: 'm', -6: 'u', -9: 'n'}
+
+                energy = map(lambda x: x*10**(-e_l), energy)
+                e_unit = units[e_l] + 'J'
+                time = map(lambda x: x*10**(-t_l), time)
+                t_unit = units[t_l] + 's'
+                power = map(lambda x: x*10**(-p_l), power)
+                p_unit = units[p_l] + 'W'
+                peakpower = map(lambda x: x*10**(-pp_l), peakpower)
+                pp_unit = units[pp_l] + 'W'
+            else:
+                e_unit = '10 fJ'
+                t_unit = '10 nJ'
+                p_unit = 'uW'
+                pp_unit = 'uW'
 
 
 
-        if arguments['--no-avg']:
-            print "Total Energy (10 fJ):\t{}".format(energy)
-            print "Total Time (10 ns):\t{}".format(time)
-            print "Average Power (uW):\t{}".format(power)
-        else:
-            print "Total Energy: \t{1:7.3f} {0}".format(e_unit, float(sum(energy))/len(energy))
-            print "Total Time:   \t{1:7.3f} {0}".format(t_unit, float(sum(time))/len(time))
-            print "Average Power:\t{1:7.3f} {0}".format(p_unit, float(sum(power))/len(power))
-            print "Peak Power:   \t{1:7.3f} {0}".format(pp_unit, float(sum(peakpower))/len(peakpower))
+            if arguments['--no-avg']:
+                print "Total Energy (10 fJ):\t{}".format(energy)
+                print "Total Time (10 ns):\t{}".format(time)
+                print "Average Power (uW):\t{}".format(power)
+            else:
+                print "Total Energy: \t{1:7.3f} {0}".format(e_unit, float(sum(energy))/len(energy))
+                print "Total Time:   \t{1:7.3f} {0}".format(t_unit, float(sum(time))/len(time))
+                print "Average Power:\t{1:7.3f} {0}".format(p_unit, float(sum(power))/len(power))
+                print "Peak Power:   \t{1:7.3f} {0}".format(pp_unit, float(sum(peakpower))/len(peakpower))
+            print ""

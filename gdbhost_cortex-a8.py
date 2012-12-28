@@ -15,6 +15,7 @@ class GdbHandler(rfoo.BaseHandler):
         gdb.execute("set height 0")
         gdb.execute("set pagination off")
         gdb.execute("set confirm off")
+        gdb.execute("monitor gdb_breakpoint_override hard")
 
     def execute(self, command):
         s =  gdb.execute(command, to_string=True)

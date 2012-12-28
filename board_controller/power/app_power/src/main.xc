@@ -15,14 +15,14 @@
 
 #define ENABLE_CORTEX_A8
 
-// #define ENABLE_EPIPHANY
+#define ENABLE_EPIPHANY
 // #define ENABLE_XMOS
 
 
 //#define DEBUG_PRINT
 //#define CONTINUOUS
 
-// #define USE_MARKER_BYTE
+#define USE_MARKER_BYTE
 
 #define MAX_SAMPLERATE      10000
 
@@ -337,7 +337,7 @@ void txByte (out port TXD, int byte) {
 #ifdef CONTINUOUS
 void UART_buffer(chanend from_sense, chanend to_uart)
 {
-    int val, op, p, t ;
+    int val, op, p, t;
 
     while(1)
     {
@@ -348,12 +348,18 @@ void UART_buffer(chanend from_sense, chanend to_uart)
             from_sense :> p;
             from_sense :> t;
         }
+        if(op == 1)
+        {
+            from_sense :> p;
+        }
         to_uart <: op;
         if(op == 2)
         {
             to_uart <: p;
             to_uart <: t;
         }
+        if(op == 1)
+            to_uart <: p;
     }
 }
 #else
@@ -386,7 +392,7 @@ void UART_buffer(chanend from_sense, chanend to_uart)
                 }
 
                 end = (end+1)&(UART_BUF_SIZE-1);
-                
+
                 break;
             }
             case to_uart :> can_send: break;
@@ -496,7 +502,7 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
             for(i = 0; i < n_table; ++i)
                 if(time_table[i] == time - last_time)
                     found = i;
-            if(found != -1 && !do_continuous)
+            if(found != -1 && !do_continuous && 0)
             {
                 bytes[0] |= 0x20;
                 bytes[b_len] = found;
@@ -505,7 +511,7 @@ void UART_byte_stream(chanend from_sense, chanend to_uart, int channel)
             }
             else //if(last_time == -1 || time-last_time > 65535 || 1)
             {
-                if(n_table < 256 && last_time != -1)
+                if(n_table < UART_TABLE_SIZE && last_time != -1)
                 {
                     time_table[n_table] = time - last_time;
                     n_table += 1;
@@ -596,7 +602,7 @@ int main()
     chan m3_to_buf, m3_to_compress;
     chan a8_to_buf[3], a8_to_compress[3];
 
-    par 
+    par
     {
         // Useless flashing
         on stdcore[0] : fadecolours(selg, selr);
@@ -614,7 +620,7 @@ int main()
         on stdcore[1]: UART_byte_stream(m0_to_compress, sends[0], 0);
     #endif
 
-    #ifdef ENABLE_CORTEX_M3      
+    #ifdef ENABLE_CORTEX_M3
         on stdcore[3]: test_ina(B_X3B, triggerB_X3B, m3_to_buf, IIC_ADDRESS_ADC_B, 40000, 5000, INA219_CFG_PGA_RANGE_40, INTERVAL);
         on stdcore[1]: UART_buffer(m3_to_buf, m3_to_compress);
         on stdcore[1]: UART_byte_stream(m3_to_compress, sends[1], 1);
@@ -634,7 +640,7 @@ int main()
         on stdcore[2]: UART_byte_stream(a8_to_compress[1], sends[3], 3);
         on stdcore[0]: UART_buffer(a8_to_buf[2], a8_to_compress[2]);
         on stdcore[0]: UART_byte_stream(a8_to_compress[2], sends[4], 4);
-    #endif        
+    #endif
 
     // epiphany
     // on stdcore[1]: test_ina(sdaA_X1A, sclA_X1A, triggerA_X1A, sends[5], IIC_ADDRESS_ADC_A, 400000, 50, INA219_CFG_PGA_RANGE_40, 500000);
