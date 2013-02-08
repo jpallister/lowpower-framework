@@ -63,7 +63,7 @@ class Runner(object):
     """This class provides an interface to gdb, for starting and stopping
         benchmarks"""
 
-    def __init__(self, platform):
+    def __init__(self, platform, timeout=None):
 
         if platform in ["cortex-m0", "cortex-m3", "mips", "xmos"]:
             self.platform = [platform]
@@ -73,9 +73,10 @@ class Runner(object):
             self.platform = ["epiphany", "epiphany_io"]
         self.gdb_vals = {}
         self.cache_dump = None
+        self.timeout=timeout
 
 
-    def run(self, executable_path, dump_vals=[], do_cache_dump=False):
+    def run(self, executable_path, dump_vals=[], do_cache_dump=False, timeout=None):
         energy_server = rfoo.InetConnection().connect(port=40000)
         if "epiphany" in self.platform:
             p = subprocess.Popen("e-gdb -x epiphany_init_mem", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -128,7 +129,22 @@ class Runner(object):
             rfoo.Proxy(c).execute("delete breakpoints")
             rfoo.Proxy(c).execute("break *&exit")
             rfoo.Proxy(c).execute("break *&_exit")
+
+            if timeout is not None or self.timeout is not None:
+                if timeout is None:
+                    timeout = self.timeout
+                pid = rfoo.Proxy(c).getpid()
+                timeout_proc = subprocess.Popen("sleep " + str(timeout) + " && kill -INT && exit 10"+str(pid), shell=True)
+
             rfoo.Proxy(c).execute("cont")
+
+            if timeout is not None:
+                timeout_proc.poll()
+                ret = timeout_proc.returncode
+                timeout_proc.terminate()
+                if ret == 10:
+                    warning("Timeout occurred when running!")
+                    raise RuntimeError("Timeout occurred running benchmark")
         info("Entering polling loop, waiting for benchmark to complete")
 
         while True:

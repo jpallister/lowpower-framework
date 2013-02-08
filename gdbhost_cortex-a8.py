@@ -1,5 +1,5 @@
 import signal
-import rfoo, socket
+import rfoo, socket, os
 
 server_port = 50005
 target_port = 3333
@@ -22,6 +22,9 @@ class GdbHandler(rfoo.BaseHandler):
         print "Execute", command
         print s
         return s
+
+    def getpid(self):
+        return os.getpid()
 
 def handler(signum, frame):
     raise KeyboardInterrupt()

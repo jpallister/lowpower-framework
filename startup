@@ -61,6 +61,10 @@ if [[ $@ == *cortex-a8* ]]; then
         screen -r a8 -X screen bash -i -c "openocd -f board/ti_beaglebone.cfg"
         sleep 1
 
+        echo Sending reset to BeagleBone
+        echo "reset init" | telnet localhost 4444
+        sleep 1
+
         echo Starting gdbhost for cortex-a8
         screen -r a8 -X screen bash -i -c "$CORTEXA8_GDB -x $FRAMEWORK/gdbhost_cortex-a8.py"
         sleep 1
