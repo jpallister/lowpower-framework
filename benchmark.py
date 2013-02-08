@@ -13,32 +13,59 @@ framework_prefix = "/home/james/university/summer12/lowpower-framework-git"
 benchmark_prefix = framework_prefix+"/benchmarks"
 default_working_prefix = framework_prefix+"/testing"
 
+platform_objcopys = {
+    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
+    'cortex-a8_all' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
+    'cortex-a8_dcache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
+    'cortex-a8_dcache_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
+}
+
 platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -static -g -T {fprefix}/platformcode/stm32f05_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDCACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDCACHE_STATE=1 -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache_l2' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_all' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 -DBP_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{cprefix}/mips_toolchain/bin/mips-elf-gcc -g -T {fprefix}/platformcode/pic32mx_flash.ld -I {fprefix}/platformcode".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{cprefix}/epiphany_toolchain/bin/epiphany-elf-gcc -g -I {fprefix}/platformcode ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
 
 clang_flags = {
     'cortex-m0' : '',
-    'cortex-a8' : '-DREPEAT_FACTOR=1048576'
+    'cortex-a8' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_dcache' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_dcache_icache' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_dcache_icache_l2' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_icache' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_all' : '-DREPEAT_FACTOR=524288 -float-abi=hard -mfpu=neon -mtriple=arm-none-eabi',
 }
 
 llc_flags = {
     'cortex-m0' : "-march=thumb -mcpu=cortex-m0 -mtriple=arm-none-eabi",
     'cortex-m3' : "-march=thumb -mcpu=cortex-m3 -mtriple=arm-none-eabi",
     'cortex-m4' : "-march=thumb -mcpu=cortex-m4 -mtriple=arm-none-eabi",
-    'cortex-a8' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi",
+    'cortex-a8' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_dcache' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_dcache_icache' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_dcache_icache_l2' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_icache' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_all' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
 }
 
 platform_code = {
     'x86'       : '{fprefix}/platformcode/stub.c'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m0' : "{fprefix}/platformcode/memcpy.c {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{fprefix}/platformcode/stm32f100.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8' : "{fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/jrand.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache_l2' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_icache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_all' : "{fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{fprefix}/platformcode/stub.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
@@ -172,7 +199,7 @@ class Test(object):
         for f in files:
             stem = f.rsplit('.', 1)[0]
             stem = stem.rsplit('/',1)[1]
-            cmdline_opt= "opt " + self.flags + " " + self.exec_dir+"/"+stem + ".o -o "+ self.exec_dir+"/"+stem + "_opt.o"
+            cmdline_opt= "timeout 20 opt " + self.flags + " " + self.exec_dir+"/"+stem + ".o -o "+ self.exec_dir+"/"+stem + "_opt.o"
             cmdline_llc = "llc " + llc_flags[self.platform] + " " + self.exec_dir+"/"+stem + "_opt.o -o "+ self.exec_dir+"/"+stem + ".s"
 
             overall_opt_cmd += cmdline_opt + "\n"
@@ -218,6 +245,24 @@ class Test(object):
             raise Exception("Compilation failure, return code "+str(ret)+"\nLog at "+self.exec_dir+"/gcc_compile.log")
 
         os.chdir(cwd)
+
+    def hash_code(self):
+        os.system(platform_objcopys[self.platform]+" -v -O binary "+self.executable+" tmp")
+        p = subprocess.Popen("md5sum tmp", shell=True, stdout=subprocess.PIPE)
+        md5 = p.communicate()[0]#.split()[0]
+
+        if p.returncode != 0:
+            return None
+
+        # const = []
+
+        # for line in md5.split('\n'):
+        #     if re.match(r'^........:', line) is not None:
+        #         const.append(line)
+
+        # md5 = "\n".join(const)
+
+        return md5
 
     def run(self, runner):
         """Run the compiled benchmark"""

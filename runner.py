@@ -67,7 +67,7 @@ class Runner(object):
 
         if platform in ["cortex-m0", "cortex-m3", "mips", "xmos"]:
             self.platform = [platform]
-        elif platform == "cortex-a8":
+        elif "cortex-a8" in platform:
             self.platform = ["cortex-a8", "cortex-a8_ddr", "cortex-a8_core"]
         elif platform == "epiphany":
             self.platform = ["epiphany", "epiphany_io"]
