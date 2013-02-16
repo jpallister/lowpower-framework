@@ -6,12 +6,20 @@
 #define EVREG_2					2
 #define EVREG_3					3
 
+// Old incorrectly named defines
+#define EV_IFETCH_L2_MISS       0x1
+#define EV_IFETCH_TLB_L2_MISS   0x2
+#define EV_DATA_L2_MISS         0x3
+#define EV_DATA_L2_ACCESS       0x4
+#define EV_DATA_TLB_L2_MISS     0x5
+
+// Event defines taken from Cortex-A8 TRM
 #define EV_SOFTWARE_INC			0x0
-#define EV_IFETCH_L2_MISS		0x1
-#define EV_IFETCH_TLB_L2_MISS	0x2
-#define EV_DATA_L2_MISS			0x3
-#define EV_DATA_L2_ACCESS		0x4
-#define EV_DATA_TLB_L2_MISS		0x5
+#define EV_IFETCH_MISS          0x1
+#define EV_IFETCH_TLB_MISS      0x2
+#define EV_DATA_MISS            0x3
+#define EV_DATA_ACCESS          0x4
+#define EV_DATA_TLB_MISS        0x5
 #define EV_DATA_READ_INSTR		0x6
 #define EV_DATA_WRITE_INSTR		0x7
 #define EV_INSTR				0x8

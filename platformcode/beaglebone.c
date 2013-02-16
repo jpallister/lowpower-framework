@@ -33,6 +33,19 @@ extern unsigned int _end_bss;
     #define BP_STATE    0
 #endif
 
+#ifndef EV_0
+    #define EV_0 EV_SOFTWARE_INC
+#endif
+#ifndef EV_1
+    #define EV_1 EV_SOFTWARE_INC
+#endif
+#ifndef EV_2
+    #define EV_2 EV_SOFTWARE_INC
+#endif
+#ifndef EV_3
+    #define EV_3 EV_SOFTWARE_INC
+#endif
+
 //#define DO_EVENTS
 
 void _cinit()
@@ -111,6 +124,7 @@ void initialise_trigger()
 
 void start_trigger()
 {
+    reset_events();
     GPIO1_DATAOUT = 0;  // Set before we turn output on
 }
 
@@ -124,13 +138,13 @@ void stop_trigger()
     GPIO1_DATAOUT = 0x80000000;  // Set before we turn output on
 
     #ifdef DO_EVENTS
-//    clean_invalidate_l1();
-  //  clean_invalidate_l2();
+        // clean_invalidate_l1();
+        // clean_invalidate_l2();
         result_0 = get_event(EVREG_0);
         result_1 = get_event(EVREG_1);
         result_2 = get_event(EVREG_2);
         result_3 = get_event(EVREG_3);
-    clear_caches();
+    // clear_caches();
     clean_invalidate_l1();
     clean_invalidate_l2();
     #endif
