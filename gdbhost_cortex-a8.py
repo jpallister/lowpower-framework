@@ -18,8 +18,8 @@ class GdbHandler(rfoo.BaseHandler):
         gdb.execute("monitor gdb_breakpoint_override hard")
 
     def execute(self, command):
-        s =  gdb.execute(command, to_string=True)
         print "Execute", command
+        s =  gdb.execute(command, to_string=True)
         print s
         return s
 

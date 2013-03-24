@@ -31,13 +31,16 @@ import logging
 import time, traceback
 
 def create_test(flags):
-    global arguments, flag_map
+    global arguments, flag_map, extra
 
     tm = benchmark.TestManager(options=flags,benchmark=arguments['BENCHMARK'],
         working_prefix=arguments['--resultsdir'], platform=arguments['PLATFORM'], repetitions=1)
 
     def createID(locopt):
         return "_".join(map(lambda x: flag_map[x], flags)) or "_"
+
+    if extra != "":
+        tm.addExtra(extra)
 
     tm.createID = createID
     test = tm.createTest([True for f in flags])
@@ -69,8 +72,9 @@ if __name__ == "__main__":
 
     ###### Test specific ######
 
+    extra = ""
     if arguments['--base'] is not None:
-        tm.setGroup(arguments['--base'])
+        extra = arguments['--base']
 
     run_interface = runner.Runner(arguments["PLATFORM"])
 

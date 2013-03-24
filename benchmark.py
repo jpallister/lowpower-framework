@@ -16,6 +16,7 @@ default_working_prefix = framework_prefix+"/testing"
 platform_objcopys = {
     'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
     'cortex-a8_all' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
+    'cortex-a8_nommu' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
     'cortex-a8_dcache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
     'cortex-a8_dcache_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-objcopy".format(cprefix=compiler_prefix),
 }
@@ -24,13 +25,14 @@ platform_compilers = {
     'x86'       : '{cprefix}/x86_toolchain/bin/gcc -g -I {fprefix}/platformcode/'.format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m0' : "{cprefix}/arm_cortex-m0_toolchain/bin/arm-none-eabi-gcc -static -g -T {fprefix}/platformcode/stm32f05_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{cprefix}/arm_cortex-m3_toolchain/bin/arm-none-eabi-gcc -g -T {fprefix}/platformcode/stm32vl_flash.ld".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_dcache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_dcache_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_dcache_icache_l2' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_dcache_l2' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DL2_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_all' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 -DBP_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_nommu' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DMMU_STATE=0 -DDO_EVENTS=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_icache_l2' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_dcache_l2' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DL2_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c -lm".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_all' : "{cprefix}/arm_cortex-a8_toolchain/bin/arm-none-eabi-gcc -e init -g -mhard-float -mfpu=neon -T {fprefix}/platformcode/beaglebone_flash.ld -DDO_EVENTS=1 -DDCACHE_STATE=1 -DICACHE_STATE=1 -DL2_STATE=1 -DBP_STATE=1 {fprefix}/platformcode/beaglebone.c {fprefix}/platformcode/events.c {fprefix}/platformcode/hw_ctl.c {fprefix}/platformcode/beaglebone_init.s {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c -static -lgcc -lc".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{cprefix}/mips_toolchain/bin/mips-elf-gcc -g -T {fprefix}/platformcode/pic32mx_flash.ld -I {fprefix}/platformcode".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{cprefix}/epiphany_toolchain/bin/epiphany-elf-gcc -g -I {fprefix}/platformcode ".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
@@ -38,12 +40,13 @@ platform_compilers = {
 clang_flags = {
     'cortex-m0' : '',
     'cortex-a8' : '-DREPEAT_FACTOR=524288',
+    'cortex-a8_nommu' : '-DREPEAT_FACTOR=524288',
     'cortex-a8_dcache' : '-DREPEAT_FACTOR=524288',
     'cortex-a8_dcache_icache' : '-DREPEAT_FACTOR=524288',
     'cortex-a8_dcache_l2' : '-DREPEAT_FACTOR=524288',
     'cortex-a8_dcache_icache_l2' : '-DREPEAT_FACTOR=524288',
     'cortex-a8_icache' : '-DREPEAT_FACTOR=524288',
-    'cortex-a8_all' : '-DREPEAT_FACTOR=524288 -float-abi=hard -mfpu=neon -mtriple=arm-none-eabi',
+    'cortex-a8_all' : '-DREPEAT_FACTOR=524288',
 }
 
 llc_flags = {
@@ -51,6 +54,7 @@ llc_flags = {
     'cortex-m3' : "-march=thumb -mcpu=cortex-m3 -mtriple=arm-none-eabi",
     'cortex-m4' : "-march=thumb -mcpu=cortex-m4 -mtriple=arm-none-eabi",
     'cortex-a8' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
+    'cortex-a8_nommu' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
     'cortex-a8_dcache' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
     'cortex-a8_dcache_icache' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
     'cortex-a8_dcache_l2' : "-march=arm -mcpu=cortex-a8 -mtriple=arm-none-eabi -float-abi=hard",
@@ -64,12 +68,13 @@ platform_code = {
     'cortex-m0' : "{fprefix}/platformcode/memcpy.c {fprefix}/platformcode/stm32f0.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-m3' : "{fprefix}/platformcode/stm32f100.c {fprefix}/platformcode/exit.c {fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_nommu' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8_dcache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8_dcache_icache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8_dcache_l2' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8_dcache_icache_l2' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     'cortex-a8_icache' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
-    'cortex-a8_all' : "{fprefix}/platformcode/sbrk.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
+    'cortex-a8_all' : "".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "mips"      : "{fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
     "epiphany"  : "{fprefix}/platformcode/stub.c {fprefix}/platformcode/exit.c".format(cprefix=compiler_prefix, fprefix=framework_prefix),
 }
@@ -77,15 +82,19 @@ platform_code = {
 benchmarks = {
     "dhrystone" : "{bprefix}/dhrystone/dhry_1.c {bprefix}/dhrystone/dhry_2.c".format(bprefix=benchmark_prefix),
     "2dfir"     : "{bprefix}/2dfir/fir2dim.c".format(bprefix=benchmark_prefix),
+    "2dfir_large"     : "{bprefix}/2dfir_large/fir2dim.c".format(bprefix=benchmark_prefix),
     "crc32"     : "{bprefix}/crc32/crc_32.c".format(bprefix=benchmark_prefix),
     "cubic"     : "{bprefix}/cubic/basicmath_small.c {bprefix}/cubic/cubic.c -lm".format(bprefix=benchmark_prefix),
     "blowfish"  : "{bprefix}/blowfish/bf.c {bprefix}/blowfish/bf_cfb64.c {bprefix}/blowfish/bf_skey.c {bprefix}/blowfish/bf_enc.c".format(bprefix=benchmark_prefix),
     "dijkstra"  : "{bprefix}/dijkstra/dijkstra_small.c".format(bprefix=benchmark_prefix),
+    "dijkstra_large"  : "{bprefix}/dijkstra_large/dijkstra_large.c".format(bprefix=benchmark_prefix),
     "fdct"      : "{bprefix}/fdct/fdct.c".format(bprefix=benchmark_prefix),
     "rijndael"  : "{bprefix}/rijndael/aes.c {bprefix}/rijndael/aesxam.c".format(bprefix=benchmark_prefix),
     "int_matmult": "{bprefix}/int_matmult/matmult.c".format(bprefix=benchmark_prefix),
     "float_matmult": "{bprefix}/float_matmult/matmult.c".format(bprefix=benchmark_prefix),
+    "float_matmult_large": "{bprefix}/float_matmult_large/matmult.c".format(bprefix=benchmark_prefix),
     "sha"       : "{bprefix}/sha/sha.c {bprefix}/sha/sha_driver.c".format(bprefix=benchmark_prefix),
+    "livermore" : "{bprefix}/livermore/livermore.c".format(bprefix=benchmark_prefix),
 }
 
 class Option(object):

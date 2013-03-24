@@ -93,7 +93,7 @@ void clean_invalidate_l1()
 	// set_dcache(0);
 	for(set = 0; set <= 0x7F; ++set)	// 32kB L2 cache
 		for(way = 0; way < 4; ++way)	// 4-way associative
-			asm("mcr p15, 0, %0, c7, c14, 1" ::"r"((way<<30) | (set<<6) ));
+			asm("mcr p15, 0, %0, c7, c14, 2" ::"r"((way<<30) | (set<<6) ));
 }
 
 void clean_invalidate_l2()
@@ -104,7 +104,7 @@ void clean_invalidate_l2()
 	// set_l2(0);
 	for(set = 0; set <= 0x1FF; ++set)	// 256kB L2 cache
 		for(way = 0; way < 8; ++way)	// 8-way associative
-			asm("mcr p15, 0, %0, c7, c14, 1" ::"r"((way<<29) | (set<<6) | (1<<1)));
+			asm("mcr p15, 0, %0, c7, c14, 2" ::"r"((way<<29) | (set<<6) | (1<<1)));
 }
 
 // Clear I-cache, D-cache, branch predictor, prefetch buffer

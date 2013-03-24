@@ -116,22 +116,46 @@ void initialise_trigger()
         reset_events();
     #endif
 
-    set_dcache(DCACHE_STATE);
-    set_icache(ICACHE_STATE);
+    // Have to call ROM, to set L2AUXCR
+    asm("push {r0-r14}");
+	asm("mrc p15, 0, r0, c1, c0, 1");
+	asm("mov r0, #0x20");
+	//asm("mov r0, #0x0");
+    asm("mov r12, #0x100");
+    asm("MCR p15,#0x0,r1,c7,c5,#6");
+    asm("dsb");
+    asm("isb");
+    asm("dmb");
+    asm("smc #1");
+
+	asm("mrc p15, 1, r0, c9, c0, 2");
+	asm("mvn r1, #0x0BC00000");
+    asm("and r0, r0, r1");
+    asm("ldr r12, =0x102");
+    asm("MCR p15,#0x0,r1,c7,c5,#6");
+    asm("dsb");
+    asm("isb");
+    asm("dmb");
+    asm("smc #1");
+    asm("pop {r0-r14}");
     set_l2(L2_STATE);
+    set_icache(ICACHE_STATE);
     set_branch_predictor(BP_STATE);
+    set_dcache(DCACHE_STATE);
 }
+
+void cache_clean_flush();
 
 void start_trigger()
 {
-    reset_events();
+    cache_clean_flush();
     GPIO1_DATAOUT = 0;  // Set before we turn output on
 }
 
-static unsigned long result_0;
-static unsigned long result_1;
-static unsigned long result_2;
-static unsigned long result_3;
+static unsigned long result_0 = -1;
+static unsigned long result_1 = -1;
+static unsigned long result_2 = -1;
+static unsigned long result_3 = -1;
 
 void stop_trigger()
 {
@@ -140,13 +164,28 @@ void stop_trigger()
     #ifdef DO_EVENTS
         // clean_invalidate_l1();
         // clean_invalidate_l2();
+        //clear_caches();
+      //  set_dcache(0);
+    //    set_icache(0);
+  //      set_l2(0);
         result_0 = get_event(EVREG_0);
         result_1 = get_event(EVREG_1);
         result_2 = get_event(EVREG_2);
         result_3 = get_event(EVREG_3);
     // clear_caches();
-    clean_invalidate_l1();
-    clean_invalidate_l2();
+    cache_clean_flush();
+     clean_invalidate_l1();
+     clean_invalidate_l2();
     #endif
 
+}
+
+void __attribute__((weak)) __aeabi_memcpy(void *a, void *b, int len)
+{
+    memcpy(a,b,len);
+}
+
+void __attribute__((weak)) __aeabi_memset(void *a, int val, int len)
+{
+    memset(a,val,len);
 }
